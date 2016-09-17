@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8"/>
+
+    <title>Demo Chat</title>
+
+    <link href="bootstrap.css" rel="stylesheet">
+
+    <style>
+        body {
+            padding: 20px;
+        }
+
+        #groupMembers {
+            height: 400px;
+            overflow: auto;
+        }
+
+        #console {
+            height: 300px;
+            overflow: auto;
+        }
+
+        .username-msg {
+            color: orange;
+        }
+
+        .connect-msg {
+            color: green;
+        }
+
+        .disconnect-msg {
+            color: red;
+        }
+
+        .send-msg {
+            color: #888
+        }
+    </style>
+
+
+    <script src="js/socket.io/socket.io.js"></script>
+    <script src="js/moment.min.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+    <script>
+
+        var socket = io.connect('http://localhost:8080?key=2');
+        var membersMap = {};
+
+        socket.on('connect', function () {
+            output('<span class="connect-msg">Client has connected target the server!</span>');
+
+        });
+        socket.on('disconnect', function () {
+            output('<span class="disconnect-msg">The client has disconnected!</span>');
+        });
+
+        socket.on('groupMemberChangeEvent', function (group) {
+            socket.emit('groupMembers', group, function (members) {
+                handleGroupMember(members);
+            });
+        });
+
+        socket.on('messageEvent', function (data, ackServerCallback) {
+            output(( membersMap[data.fromId] ? membersMap[data.fromId].username : data.fromId ) + ':' + data.content)
+            if (ackServerCallback) {
+                ackServerCallback();
+            }
+        });
+
+
+        function getGroupHistoryMessage(group) {
+            socket.emit('groupHistoryMessage', group, function (messages) {
+                console.log("group history message : " + JSON.stringify(messages));
+            });
+        }
+
+        function handleGroupMember(members) {
+            var html = '';
+            for (var i = 0; i < members.length; i++) {
+                var m = members[i];
+                membersMap[m.userId] = m;
+                html += '<div class="member">' + m.username + ' ' + (m.status == 1 ? '在线' : '离线') + '</div>'
+            }
+            $("#groupMembers").html(html);
+        }
+
+        function join(userId, username, group) {
+
+            $("#sendMsgBtn").data("userId", userId).data("username", username).data("group", group);
+
+            socket.emit('join', {
+                "userId": userId,
+                "username": username,
+                "groups": [group]
+            }, function (result, groupMembers) {
+
+                if (result == 'ok') {
+                    console.log("group member : " + JSON.stringify(groupMembers));
+                    handleGroupMember(groupMembers[group]);
+                    getGroupHistoryMessage(group);
+                } else {
+                    console.log("join fail");
+                }
+            });
+
+        }
+
+
+        function output(message) {
+            var currentTime = "<span class='time'>" + moment().format('HH:mm:ss') + "</span>";
+            var element = $("<div>" + currentTime + ":" + message + "</div>");
+            $('#console').prepend(element);
+        }
+
+        function goJoin() {
+            join($("#userId").val(), $("#username").val(), $("#group").val())
+        }
+
+        $(function () {
+            $("#sendMsgBtn").click(function () {
+
+                var content = $("#inputMsg").val().trim();
+                var group = $(this).data("group");
+                if (content == '') {
+                    alert('Please input content');
+                    return;
+                }
+                if (!group) {
+                    alert('Please join a group');
+                    return;
+                }
+                socket.emit('sendGroupMsg', {
+                    group: group,
+                    content: content
+                }, function (result) {
+                    if (result == 'ok') {
+                        $("#inputMsg").val('');
+                    } else {
+                        alert("Send fail");
+                    }
+                });
+            });
+        });
+
+    </script>
+</head>
+
+<body>
+
+<h1> Web Im Demo</h1>
+
+<br/>
+
+<div class="container">
+    <form class="well form-inline" onsubmit="return false;">
+        <input id="userId" class="input-xlarge" type="text" placeholder="Type input user id ..." value="1"/>
+        <input id="username" class="input-xlarge" type="text" placeholder="Type input username ..." value="wens"/>
+        <input id="group" class="input-xlarge" type="text" placeholder="Type input group ..." value="g1"/>
+        <button type="button" onClick="goJoin()" class="btn">Join</button>
+    </form>
+    <div class="row">
+        <div class="span4">
+            <div id="groupMembers" class="well">
+
+            </div>
+        </div>
+        <div class="span8">
+            <div id="console" class="well"></div>
+            <div class="well form-inline">
+                <input id="inputMsg" class="input-xlarge" type="text" placeholder="Type input..."/>
+                <button id="sendMsgBtn" type="button">Send</button>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>
