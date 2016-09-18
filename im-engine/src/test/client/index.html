@@ -120,6 +120,17 @@
             join($("#userId").val(), $("#username").val(), $("#group").val())
         }
 
+        function enroll(){
+            socket.emit('enroll', {
+                username : $("#username").val(),
+                nickname : $("#nickname").val(),
+                password : $("#password").val()
+            }, function (result) {
+
+                alert(result)
+            });
+        }
+
         $(function () {
             $("#sendMsgBtn").click(function () {
 
@@ -157,10 +168,10 @@
 
 <div class="container">
     <form class="well form-inline" onsubmit="return false;">
-        <input id="userId" class="input-xlarge" type="text" placeholder="Type input user id ..." value="1"/>
-        <input id="username" class="input-xlarge" type="text" placeholder="Type input username ..." value="wens"/>
-        <input id="group" class="input-xlarge" type="text" placeholder="Type input group ..." value="g1"/>
-        <button type="button" onClick="goJoin()" class="btn">Join</button>
+        <input id="username"  type="text" placeholder="account" />
+        <input id="nickname"  type="text" placeholder="nickname" />
+        <input id="password"  type="password" placeholder="password" value="123456" />
+        <button type="button" onClick="enroll()" class="btn">Enroll</button>
     </form>
     <div class="row">
         <div class="span4">

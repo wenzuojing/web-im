@@ -158,7 +158,7 @@ public class EventService {
             if (DBUtils.saveUser(enroll.getUsername(), enroll.getNickname(), enroll.getPassword())) {
                 ackRequest.sendAckData("ok");
             } else {
-                ackRequest.sendAckData("ok");
+                ackRequest.sendAckData("fail");
             }
         } catch (Exception e) {
             log.error("Enroll fail", e);
@@ -231,13 +231,11 @@ public class EventService {
     }
 
     public void start() {
-
-
+        messageExchange.start();
     }
 
     public void stop() {
-
-
+        messageExchange.stop();
     }
 
 
