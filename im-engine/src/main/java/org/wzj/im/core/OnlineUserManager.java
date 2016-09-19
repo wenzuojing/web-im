@@ -9,10 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.wzj.im.common.*;
 
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -22,7 +19,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class OnlineUserManager {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-
 
 
     public static class Bind {
@@ -57,22 +53,22 @@ public class OnlineUserManager {
                 throw new PushException("Session:" + client.getSessionId() + " had be bind user:" + bind.userId);
             }
 
-            userId2Clients.put(String.valueOf(user.getUserId()), client);
+            userId2Clients.put(user.getUserId(), client);
 
             Set<String> groupIds = new HashSet<>();
             if (groups != null) {
                 for (Group g : groups) {
-                    groupIds.add(String.valueOf(g.getGroupId()));
+                    groupIds.add(g.getGroupId());
                 }
             }
             for (String g : groupIds) {
                 group2Clients.put(g, client);
             }
 
-            client.set(Constant.BIND_KEY, new Bind(String.valueOf(user.getUserId()), groupIds));
+            client.set(Constant.BIND_KEY, new Bind(user.getUserId(), groupIds));
 
             //The same user open two connects or more
-            if (userId2Clients.get(String.valueOf(user.getUserId())).size() == 1) {
+            if (userId2Clients.get(user.getUserId()).size() == 1) {
                 try {
                     DBUtils.changeUserStatus(user.getUserId(), 1);
                 } catch (Exception e) {
@@ -104,11 +100,22 @@ public class OnlineUserManager {
             Collection<SocketIOClient> socketIOClients = userId2Clients.get(bind.userId);
             if (socketIOClients == null || socketIOClients.size() == 0) {
                 try {
-                    DBUtils.changeUserStatus(Long.valueOf(bind.userId), 0);
+                    DBUtils.changeUserStatus(bind.userId, 0);
                 } catch (SQLException e) {
                     throw new PushException(e);
                 }
-                messageExchange.pushOnlineOfflineEvent(Long.valueOf(bind.userId),false );
+                List<User> friends = null;
+                try {
+                    friends = DBUtils.queryFriend(bind.userId);
+                } catch (SQLException e) {
+                    throw new PushException(e) ;
+                }
+                List<String> friendIds  =  new ArrayList<>(friends.size());
+                for(User u : friends){
+                    friendIds.add(u.getUserId());
+                }
+                messageExchange.pushOnlineOfflineEvent(bind.userId ,friendIds ,false );
+                messageExchange.pushGroupMemberOnlineOfflineEvent(bind.groups.toArray(new String[bind.groups.size()]),false );
             }
 
         } finally {
@@ -121,7 +128,7 @@ public class OnlineUserManager {
         Collection<SocketIOClient> socketIOClients;
         lock.readLock().lock();
         try {
-            socketIOClients = userId2Clients.get(String.valueOf(imMessage.getTarget()));
+            socketIOClients = userId2Clients.get(imMessage.getTarget());
         } finally {
             lock.readLock().unlock();
         }
@@ -133,7 +140,7 @@ public class OnlineUserManager {
         }
 
         for (SocketIOClient client : socketIOClients) {
-            client.sendEvent(Constant.MESSAGE_EVENT, new VoidAckCallback() {
+            client.sendEvent("messageEvent", new VoidAckCallback() {
                 @Override
                 protected void onSuccess() {
                     log.info("Ack message . userId = {} , msgId = {} ", imMessage.getTarget(), imMessage.getMsgId());
@@ -149,7 +156,7 @@ public class OnlineUserManager {
         Collection<SocketIOClient> socketIOClients;
         lock.readLock().lock();
         try {
-            socketIOClients = group2Clients.get(String.valueOf(groupMessage.getGroupId()));
+            socketIOClients = group2Clients.get(groupMessage.getGroupId());
         } finally {
             lock.readLock().unlock();
         }
@@ -162,10 +169,10 @@ public class OnlineUserManager {
         for (SocketIOClient client : socketIOClients) {
             Bind bind = client.get(Constant.BIND_KEY);
             final String userId = bind.userId;
-            if (bind.userId.equals(String.valueOf(groupMessage.getSender()))) {
+            if (bind.userId.equals(groupMessage.getSender())) {
                 continue;
             }
-            client.sendEvent(Constant.MESSAGE_EVENT, new VoidAckCallback() {
+            client.sendEvent("groupMessageEvent", new VoidAckCallback() {
                 @Override
                 protected void onSuccess() {
                     log.info("Ack message . userId = {} , msgId = {} ", userId, groupMessage.getMsgId());
@@ -177,13 +184,15 @@ public class OnlineUserManager {
         return true;
     }
 
-    public void pushOnlineOfflineEvent(Long who , List<Long> friendIds , boolean isOnlineEvent   ) {
+    public void pushOnlineOfflineEvent(String who , List<String> friendIds , boolean isOnlineEvent   ) {
 
         Collection<SocketIOClient> socketIOClients;
-        lock.readLock().lock();
-        for(Long userId  : friendIds ){
+
+        for(String userId  : friendIds ){
+
+            lock.readLock().lock();
             try {
-                socketIOClients = userId2Clients.get(String.valueOf(userId)) ;
+                socketIOClients = userId2Clients.get(userId) ;
             } finally {
                 lock.readLock().unlock();
             }
@@ -201,13 +210,38 @@ public class OnlineUserManager {
 
     }
 
-    public void pushFriendChangeEvent(List<Long> userIds) {
+    public void pushGroupMemberOnlineOfflineEvent(String[] groups, boolean isOnlineEvent ) {
 
         Collection<SocketIOClient> socketIOClients;
-        lock.readLock().lock();
-        for(Long userId  : userIds ){
+
+        for(String group  : groups ){
+            lock.readLock().lock();
             try {
-                socketIOClients = userId2Clients.get(String.valueOf(userId)) ;
+                socketIOClients = group2Clients.get(group) ;
+            } finally {
+                lock.readLock().unlock();
+            }
+
+            if (socketIOClients == null || socketIOClients.size() == 0) {
+                log.warn("Can not find client for the group : {}", group );
+                continue;
+            }
+
+            for (SocketIOClient client : socketIOClients) {
+                client.sendEvent( isOnlineEvent ? "groupMemberOnlineEvent" : "groupMemberOfflineEvent", group );
+                log.info("Push groupMemberOnlineEvent or groupMemberOfflineEvent for the  user : {}  ", group );
+            }
+        }
+    }
+
+    public void pushFriendChangeEvent(List<String> userIds) {
+
+        Collection<SocketIOClient> socketIOClients;
+
+        for(String userId  : userIds ){
+            lock.readLock().lock();
+            try {
+                socketIOClients = userId2Clients.get(userId) ;
             } finally {
                 lock.readLock().unlock();
             }
@@ -221,6 +255,27 @@ public class OnlineUserManager {
                 client.sendEvent("friendChangeEvent");
                 log.info("Push onlineEvent or offlineEvent for the  user : {}  ", userId );
             }
+        }
+    }
+
+    public void pushGroupMemberChangeEvent(String groupId) {
+
+        Collection<SocketIOClient> socketIOClients;
+
+        lock.readLock().lock();
+        try {
+            socketIOClients = group2Clients.get(groupId) ;
+        } finally {
+            lock.readLock().unlock();
+        }
+
+        if (socketIOClients == null || socketIOClients.size() == 0) {
+            log.warn("Can not find client for the group : {}", groupId );
+        }
+
+        for (SocketIOClient client : socketIOClients) {
+            client.sendEvent("groupMemberChangeEvent" , groupId );
+            log.info("Push onlineEvent or offlineEvent for the  group : {}  ", groupId );
         }
     }
 

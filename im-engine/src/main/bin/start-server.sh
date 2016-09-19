@@ -66,4 +66,4 @@ echo "JAVA_OPTS  :$JAVA_OPTS"
 
 cd $SERVER_HOME
 
-exec  $java -classpath  $CLASSPATH  $JAVA_OPTS PushEngineBootstrap
+exec  $java -classpath  $CLASSPATH  $JAVA_OPTS org.wzj.im.core.ImEngineBootstrap

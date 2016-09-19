@@ -6,16 +6,16 @@ import java.util.Date;
  * Created by wens on 16/9/17.
  */
 public class Group {
-    private Long groupId;
+    private String groupId;
     private String groupName;
-    private Long creater;
+    private String creater;
     private Date createTime;
 
-    public Long getGroupId() {
+    public String getGroupId() {
         return groupId;
     }
 
-    public void setGroupId(Long groupId) {
+    public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
 
@@ -27,11 +27,11 @@ public class Group {
         this.groupName = groupName;
     }
 
-    public Long getCreater() {
+    public String getCreater() {
         return creater;
     }
 
-    public void setCreater(Long creater) {
+    public void setCreater(String creater) {
         this.creater = creater;
     }
 

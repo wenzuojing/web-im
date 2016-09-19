@@ -7,22 +7,22 @@ import java.util.Date;
  */
 public  class ImMessage {
 
-    private Long msgId;
+    private String msgId;
     private Integer type;
     private Integer msgType;
-    private Long target;
+    private String target;
     private String targetName;
-    private Long sender;
+    private String sender;
     private String senderName;
     private Integer status;
     private String content;
     private Date createTime;
 
-    public Long getMsgId() {
+    public String getMsgId() {
         return msgId;
     }
 
-    public void setMsgId(Long msgId) {
+    public void setMsgId(String msgId) {
         this.msgId = msgId;
     }
 
@@ -42,19 +42,19 @@ public  class ImMessage {
         this.msgType = msgType;
     }
 
-    public Long getTarget() {
+    public String getTarget() {
         return target;
     }
 
-    public void setTarget(Long target) {
+    public void setTarget(String target) {
         this.target = target;
     }
 
-    public Long getSender() {
+    public String getSender() {
         return sender;
     }
 
-    public void setSender(Long sender) {
+    public void setSender(String sender) {
         this.sender = sender;
     }
 

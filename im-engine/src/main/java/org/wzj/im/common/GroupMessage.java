@@ -7,22 +7,22 @@ import java.util.Date;
  */
 public class GroupMessage {
 
-    private Long msgId;
+    private String msgId;
     private Integer type;
     private Integer msgType;
-    private Long groupId;
+    private String groupId;
     private String groupName;
-    private Long sender;
+    private String sender;
     private String senderName;
     private Integer status;
     private String content;
     private Date createTime;
 
-    public Long getMsgId() {
+    public String getMsgId() {
         return msgId;
     }
 
-    public void setMsgId(Long msgId) {
+    public void setMsgId(String msgId) {
         this.msgId = msgId;
     }
 
@@ -42,19 +42,19 @@ public class GroupMessage {
         this.msgType = msgType;
     }
 
-    public Long getGroupId() {
+    public String getGroupId() {
         return groupId;
     }
 
-    public void setGroupId(Long groupId) {
+    public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
 
-    public Long getSender() {
+    public String getSender() {
         return sender;
     }
 
-    public void setSender(Long sender) {
+    public void setSender(String sender) {
         this.sender = sender;
     }
 

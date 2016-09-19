@@ -76,7 +76,7 @@ public class ImEngineBootstrap {
         server.addEventListener("addFriend", String.class, new DataListener<String>() {
             @Override
             public void onData(SocketIOClient client, String userId, AckRequest ackRequest) {
-                eventService.onAddFriend(client, Long.valueOf(userId), ackRequest);
+                eventService.onAddFriend(client, userId, ackRequest);
             }
         });
 
@@ -91,7 +91,7 @@ public class ImEngineBootstrap {
         server.addEventListener("joinGroup", String.class, new DataListener<String>() {
             @Override
             public void onData(SocketIOClient client, String groupId, AckRequest ackRequest) {
-                eventService.onJoinGroup(client, Long.valueOf(groupId), ackRequest);
+                eventService.onJoinGroup(client, groupId, ackRequest);
             }
         });
 
@@ -120,7 +120,7 @@ public class ImEngineBootstrap {
         server.addEventListener("queryGroupHistoryMessage", String.class, new DataListener<String>() {
             @Override
             public void onData(SocketIOClient client, String groupId, AckRequest ackRequest) {
-                eventService.onQueryGroupHistoryMessage(client, Long.valueOf(groupId), ackRequest);
+                eventService.onQueryGroupHistoryMessage(client, groupId, ackRequest);
             }
         });
 

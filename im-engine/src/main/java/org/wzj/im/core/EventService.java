@@ -53,6 +53,16 @@ public class EventService {
             List<Group> myGroups = DBUtils.queryJoinGroupBy(user.getUserId());
             onlineUserManager.bindClient(user, myGroups, client);
             List<User> friends = DBUtils.queryFriend(user.getUserId());
+            List<String> friendIds  =  new ArrayList<>(friends.size());
+            for(User u : friends){
+                friendIds.add(u.getUserId());
+            }
+            List<String> groupIds  = new ArrayList<>(myGroups.size()) ;
+            for(Group g : myGroups ){
+                groupIds.add(g.getGroupId()) ;
+            }
+            messageExchange.pushOnlineOfflineEvent(  user.getUserId() ,friendIds ,true );
+            messageExchange.pushGroupMemberOnlineOfflineEvent(groupIds.toArray(new String[groupIds.size()]), true );
             ackRequest.sendAckData("ok", user, friends, myGroups);
         } catch (Exception e) {
             client.disconnect();
@@ -61,7 +71,7 @@ public class EventService {
         }
     }
 
-    public void onQueryGroupHistoryMessage(SocketIOClient client, Long groupId, AckRequest ackRequest) {
+    public void onQueryGroupHistoryMessage(SocketIOClient client, String groupId, AckRequest ackRequest) {
 
         List<GroupMessage> groupMessages = null;
         try {
@@ -70,18 +80,18 @@ public class EventService {
             log.error("queryGroupHistoryMessage() fail", e);
             groupMessages = Collections.emptyList();
         }
-        ackRequest.sendAckData(groupMessages);
+        ackRequest.sendAckData("ok" ,groupMessages);
     }
 
     public void onQueryGroupMember(SocketIOClient client, String groupId, AckRequest ackRequest) {
         List<User> users = null;
         try {
-            users = DBUtils.queryGroupMembers(Long.valueOf(groupId));
+            users = DBUtils.queryGroupMembers(groupId);
         } catch (SQLException e) {
             log.error("queryGroupMembers() fail", e);
             users = Collections.EMPTY_LIST;
         }
-        ackRequest.sendAckData(users);
+        ackRequest.sendAckData("ok",users);
     }
 
     public void onSendGroupMsg(SocketIOClient client, GroupMessage groupMessage, AckRequest ackRequest) {
@@ -105,7 +115,7 @@ public class EventService {
     }
 
 
-    public void onAddFriend(SocketIOClient client, Long userId, AckRequest ackRequest) {
+    public void onAddFriend(SocketIOClient client, String userId, AckRequest ackRequest) {
         try {
             User friend = DBUtils.getUser(userId);
             if (friend == null) {
@@ -114,8 +124,8 @@ public class EventService {
             }
 
             OnlineUserManager.Bind bind = client.get(Constant.BIND_KEY);
-            if (DBUtils.saveFriend(Long.valueOf(bind.userId), userId)) {
-                messageExchange.pushFriendChangeEvent(Arrays.asList(Long.valueOf(bind.userId) ,userId));
+            if (DBUtils.saveFriend(bind.userId, userId)) {
+                messageExchange.pushFriendChangeEvent(Arrays.asList(bind.userId ,userId));
             }
             ackRequest.sendAckData("ok");
         } catch (Exception e) {
@@ -128,9 +138,31 @@ public class EventService {
     public void onFindUser(SocketIOClient client, String keyword, AckRequest ackRequest) {
         try {
             List<User> users = DBUtils.queryUserByKeywork(keyword);
+            OnlineUserManager.Bind bind  = client.get(Constant.BIND_KEY) ;
             if (users == null) {
                 users = Collections.EMPTY_LIST;
+            }else if(bind != null ){
+                List<User> friends  = DBUtils.queryFriend(bind.userId) ;
+                List<User> list  = new ArrayList<>(users.size()) ;
+                for(User u : users ){
+                    boolean f =  false ;
+                    for(User friend : friends){
+                        if(friend.getUserId().equals(u.getUserId())){
+                           f = true ;
+                        }
+                    }
+
+                    if( !f  && !u.getUserId().equals(bind.userId)){
+                        list.add(u);
+                    }
+
+                }
+
+                users = list ;
             }
+
+
+
             ackRequest.sendAckData("ok", users);
         } catch (Exception e) {
             log.error("Query user fail", e);
@@ -141,9 +173,27 @@ public class EventService {
     public void onFindGroup(SocketIOClient client, String keyword, AckRequest ackRequest) {
 
         try {
+            OnlineUserManager.Bind bind  = client.get(Constant.BIND_KEY) ;
             List<Group> groups = DBUtils.queryGroupByKeywork(keyword);
             if (groups == null) {
                 groups = Collections.EMPTY_LIST;
+            }else if(bind != null ){
+                List<Group> myGroups = DBUtils.queryJoinGroupBy(bind.userId);
+                List<Group> list = new ArrayList<>(groups.size() );
+
+                for(Group g  : groups ){
+                    boolean f  = false ;
+                    for(Group gg : myGroups ){
+                        if(gg.getGroupId().equals(g.getGroupId())){
+                            f = true ;
+                            break;
+                        }
+                    }
+                    if(!f ){
+                        list.add(g) ;
+                    }
+                }
+                groups = list ;
             }
             ackRequest.sendAckData("ok", groups);
         } catch (Exception e) {
@@ -167,7 +217,7 @@ public class EventService {
 
     }
 
-    public void onJoinGroup(SocketIOClient client, Long groupId, AckRequest ackRequest) {
+    public void onJoinGroup(SocketIOClient client, String groupId, AckRequest ackRequest) {
 
         try {
             OnlineUserManager.Bind bind = client.get(Constant.BIND_KEY);
@@ -176,15 +226,10 @@ public class EventService {
                 ackRequest.sendAckData("fail");
                 return ;
             }
-            if( DBUtils.saveGroupUser(Long.valueOf(bind.userId), groupId ) ){
-
-                List<User> users = DBUtils.queryGroupMembers(groupId);
-                List<Long> userIds  = new ArrayList<>(users.size());
-                for(User u : users ){
-                    userIds.add(u.getUserId());
-                }
-                messageExchange.pushFriendChangeEvent(userIds);
+            if( DBUtils.saveGroupUser(bind.userId, groupId ) ){
+                messageExchange.pushGroupMemberChangeEvent(groupId);
             }
+            ackRequest.sendAckData("ok");
         } catch (Exception e) {
             log.error("Create group fail", e);
             ackRequest.sendAckData("fail");
@@ -195,7 +240,7 @@ public class EventService {
 
         try {
             OnlineUserManager.Bind bind = client.get(Constant.BIND_KEY);
-            if (DBUtils.saveGroup(Long.valueOf(bind.userId), createGroup.getToken(), createGroup.getGroupName())) {
+            if (DBUtils.saveGroup(bind.userId, createGroup.getToken(), createGroup.getGroupName())) {
                 ackRequest.sendAckData("ok");
             } else {
                 ackRequest.sendAckData("ok");
@@ -210,7 +255,7 @@ public class EventService {
 
         try {
             OnlineUserManager.Bind bind = client.get(Constant.BIND_KEY);
-            List<User> users = DBUtils.queryFriend(Long.valueOf(bind.userId));
+            List<User> users = DBUtils.queryFriend(bind.userId);
             ackRequest.sendAckData("ok", users);
         } catch (Exception e) {
             log.error("Query my friend fail", e);
@@ -222,7 +267,7 @@ public class EventService {
 
         try {
             OnlineUserManager.Bind bind = client.get(Constant.BIND_KEY);
-            List<Group> groups = DBUtils.queryJoinGroupBy(Long.valueOf(bind.userId));
+            List<Group> groups = DBUtils.queryJoinGroupBy(bind.userId);
             ackRequest.sendAckData("ok", groups);
         } catch (Exception e) {
             log.error("Query my group fail", e);

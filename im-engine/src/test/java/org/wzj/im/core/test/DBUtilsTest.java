@@ -23,8 +23,6 @@ public class DBUtilsTest {
     }
 
 
-
-
     @Test
     public void test_saveUser() throws SQLException {
         boolean b = DBUtils.saveUser( RandomStringUtils.randomAlphabetic(10), RandomStringUtils.randomAlphabetic(3), "123456");
@@ -77,11 +75,11 @@ public class DBUtilsTest {
     public void test_saveGroup() throws SQLException {
         String token = RandomStringUtils.randomAlphabetic(10);
         String groupName = RandomStringUtils.randomAlphabetic(10);
-        boolean b = DBUtils.saveGroup(1L, token, groupName);
+        boolean b = DBUtils.saveGroup("1", token, groupName);
         Assert.assertTrue(b);
         boolean error = false ;
         try{
-            b = DBUtils.saveGroup(1L, token, groupName);
+            b = DBUtils.saveGroup("1" , token, groupName);
             Assert.assertFalse(b);
         }catch (SQLException e){
             error = true ;
@@ -98,7 +96,7 @@ public class DBUtilsTest {
 
         String token = RandomStringUtils.randomAlphabetic(10);
         String groupName = RandomStringUtils.randomAlphabetic(10);
-        b = DBUtils.saveGroup(1L, token, groupName);
+        b = DBUtils.saveGroup("1", token, groupName);
         Assert.assertTrue(b);
 
         Group group = DBUtils.getGroupByToken(token);
@@ -129,7 +127,7 @@ public class DBUtilsTest {
         imMessage.setCreateTime(new Date());
         imMessage.setSender(user1.getUserId());
         imMessage.setSenderName(user1.getNickname());
-        imMessage.setMsgId(IdWorker.getId());
+        imMessage.setMsgId(String.valueOf( IdWorker.getId()));
         imMessage.setMsgType(1);
         imMessage.setStatus(1);
         imMessage.setTarget(user2.getUserId());
@@ -155,7 +153,7 @@ public class DBUtilsTest {
 
         String token = RandomStringUtils.randomAlphabetic(10);
         String groupName = RandomStringUtils.randomAlphabetic(10);
-        boolean b = DBUtils.saveGroup(1L, token, groupName);
+        boolean b = DBUtils.saveGroup("1", token, groupName);
         Assert.assertTrue(b);
 
         Group group = DBUtils.getGroupByToken(token);
@@ -166,7 +164,7 @@ public class DBUtilsTest {
         groupMessage.setCreateTime(new Date());
         groupMessage.setSender(user1.getUserId());
         groupMessage.setSenderName(user1.getNickname());
-        groupMessage.setMsgId(IdWorker.getId());
+        groupMessage.setMsgId(String.valueOf( IdWorker.getId()));
         groupMessage.setMsgType(1);
         groupMessage.setStatus(1);
         groupMessage.setGroupId(group.getGroupId());

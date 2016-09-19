@@ -12,6 +12,7 @@ import org.wzj.im.common.*;
 import java.io.*;
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -128,8 +129,8 @@ public class MessageExchange extends ReceiverAdapter {
         } else if (Constant.PUSH_FRIEND_ONLINE_EVENT.equals(cmd) || Constant.PUSH_FRIEND_OFFLINE_EVENT.equals(cmd) ) {
             if (params.length == 2) {
                 try {
-                    Long who  = Long.valueOf(params[0]);
-                    List<Long> friendIds = JSONObject.parseObject(params[1] , new TypeReference<List<Long>>(){}) ;
+                    String who  = String.valueOf(params[0]);
+                    List<String> friendIds = JSONObject.parseObject(params[1] , new TypeReference<List<String>>(){}) ;
                     this.onlineUserManager.pushOnlineOfflineEvent(who,friendIds,Constant.PUSH_FRIEND_ONLINE_EVENT.equals(cmd) );
                 } catch (Exception e) {
                     log.error("Fail to push PUSH_FRIEND_ONLINE_EVENT or PUSH_FRIEND_OFFLINE_EVENT message.", e);
@@ -137,13 +138,34 @@ public class MessageExchange extends ReceiverAdapter {
             } else {
                 log.warn("Receive a bad message : {}", params[0]);
             }
+        } else if (Constant.PUSH_GROUP_MEMBER_ONLINE_EVENT.equals(cmd) || Constant.PUSH_GROUP_MEMBER_OFFLINE_EVENT.equals(cmd) ) {
+            if (params.length == 1) {
+                try {
+                    String[] groups = JSONObject.parseObject(params[0] , new TypeReference<String[]>(){}) ;
+                    this.onlineUserManager.pushGroupMemberOnlineOfflineEvent(groups,Constant.PUSH_GROUP_MEMBER_ONLINE_EVENT.equals(cmd) );
+                } catch (Exception e) {
+                    log.error("Fail to push PUSH_GROUP_MEMBER_ONLINE_EVENT or PUSH_GROUP_MEMBER_OFFLINE_EVENT message.", e);
+                }
+            } else {
+                log.warn("Receive a bad message : {}", params[0]);
+            }
         }else if(Constant.PUSH_FRIEND_CHANGE_EVENT.equals(cmd)){
             if (params.length == 1) {
                 try {
-                    List<Long> userIds = JSONObject.parseObject(params[0] , new TypeReference<List<Long>>(){}) ;
+                    List<String> userIds = JSONObject.parseObject(params[0] , new TypeReference<List<String>>(){}) ;
                     this.onlineUserManager.pushFriendChangeEvent(userIds);
                 } catch (Exception e) {
                     log.error("Fail to push PUSH_FRIEND_CHANGE_EVENT message.", e);
+                }
+            } else {
+                log.warn("Receive a bad message : {}", params[0]);
+            }
+        }else if(Constant.PUSH_GROUP_MEMBER_CHANGE_EVENT.equals(cmd)){
+            if (params.length == 1) {
+                try {
+                    this.onlineUserManager.pushGroupMemberChangeEvent(params[0]);
+                } catch (Exception e) {
+                    log.error("Fail to push PUSH_GROUP_MEMBER_CHANGE_EVENT message.", e);
                 }
             } else {
                 log.warn("Receive a bad message : {}", params[0]);
@@ -174,8 +196,8 @@ public class MessageExchange extends ReceiverAdapter {
 
         groupMessage.setStatus(0);
         groupMessage.setCreateTime(Calendar.getInstance().getTime());
-        groupMessage.setMsgId(IdWorker.getId());
-        groupMessage.setSender(Long.valueOf(bind.userId));
+        groupMessage.setMsgId(String.valueOf(IdWorker.getId()));
+        groupMessage.setSender(bind.userId);
 
         try {
             DBUtils.saveGroupMessage(groupMessage);
@@ -207,6 +229,17 @@ public class MessageExchange extends ReceiverAdapter {
         } catch (Exception e) {
             log.error("send broadcast fail", e);
             throw new PushException(e);
+        }finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                //
+            }
+            try {
+                out.close();
+            } catch (IOException e) {
+                //
+            }
         }
 
     }
@@ -222,9 +255,9 @@ public class MessageExchange extends ReceiverAdapter {
         imMessage.setType(1);
         imMessage.setStatus(0);
 
-        imMessage.setSender(Long.valueOf(bind.userId));
+        imMessage.setSender(bind.userId);
         imMessage.setCreateTime(Calendar.getInstance().getTime());
-        imMessage.setMsgId(IdWorker.getId());
+        imMessage.setMsgId(String.valueOf(IdWorker.getId()));
 
         try {
             DBUtils.saveMessage(imMessage);
@@ -239,7 +272,7 @@ public class MessageExchange extends ReceiverAdapter {
             throw new PushException(e);
         }
 
-        if (onlineUserManager.pushMessage(imMessage)) {
+        if (!onlineUserManager.pushMessage(imMessage)) {
             ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
             DataOutputStream writer = new DataOutputStream(out);
             try {
@@ -254,6 +287,17 @@ public class MessageExchange extends ReceiverAdapter {
             } catch (Exception e) {
                 log.error("send broadcast fail", e);
                 throw new PushException(e);
+            }finally {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    //
+                }
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    //
+                }
             }
         }
 
@@ -265,17 +309,16 @@ public class MessageExchange extends ReceiverAdapter {
         writer.write(bytes);
     }
 
-    public void pushOnlineOfflineEvent(Long userId , boolean isOnline ) {
-        List<Long> friendIds  = DBUtils.getAllFriendIncludeGroupFriend(userId);
-        onlineUserManager.pushOnlineOfflineEvent( userId , friendIds ,isOnline ) ;
+    public void pushOnlineOfflineEvent(String userId , List<String> friendIds , boolean isOnline ) {
 
+        onlineUserManager.pushOnlineOfflineEvent( userId , friendIds ,isOnline ) ;
         ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
         DataOutputStream writer = new DataOutputStream(out);
+
         try {
             writeString(writer, isOnline ? Constant.PUSH_FRIEND_ONLINE_EVENT : Constant.PUSH_FRIEND_OFFLINE_EVENT );
             writer.writeInt(2);
-
-            writeString(writer, String.valueOf(userId));
+            writeString(writer, userId );
             writeString(writer, JSONObject.toJSONString(friendIds));
             Message message = new Message();
             writer.flush();
@@ -284,12 +327,53 @@ public class MessageExchange extends ReceiverAdapter {
         } catch (Exception e) {
             log.error("send broadcast fail", e);
             throw new PushException(e);
+        }finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                //
+            }
+            try {
+                out.close();
+            } catch (IOException e) {
+                //
+            }
+        }
+
+    }
+
+    public void pushGroupMemberOnlineOfflineEvent(String[] groups , boolean isOnline ) {
+        onlineUserManager.pushGroupMemberOnlineOfflineEvent( groups ,isOnline ) ;
+        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+        DataOutputStream writer = new DataOutputStream(out);
+        try {
+            writeString(writer, isOnline ? Constant.PUSH_GROUP_MEMBER_ONLINE_EVENT : Constant.PUSH_GROUP_MEMBER_OFFLINE_EVENT );
+            writer.writeInt(1);
+            writeString(writer, JSONObject.toJSONString(groups));
+            Message message = new Message();
+            writer.flush();
+            message.setBuffer(out.toByteArray());
+            channel.send(message);
+        } catch (Exception e) {
+            log.error("send broadcast fail", e);
+            throw new PushException(e);
+        }finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                //
+            }
+            try {
+                out.close();
+            } catch (IOException e) {
+                //
+            }
         }
 
     }
 
 
-    public void pushFriendChangeEvent(List<Long> userIds ) {
+    public void pushFriendChangeEvent(List<String> userIds ) {
 
         onlineUserManager.pushFriendChangeEvent(userIds) ;
 
@@ -307,8 +391,49 @@ public class MessageExchange extends ReceiverAdapter {
         } catch (Exception e) {
             log.error("send broadcast fail", e);
             throw new PushException(e);
+        }finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                //
+            }
+            try {
+                out.close();
+            } catch (IOException e) {
+                //
+            }
         }
 
 
+    }
+
+    public void pushGroupMemberChangeEvent(String groupId) {
+        onlineUserManager.pushGroupMemberChangeEvent(groupId) ;
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+        DataOutputStream writer = new DataOutputStream(out);
+        try {
+            writeString(writer,Constant.PUSH_GROUP_MEMBER_CHANGE_EVENT);
+            writer.writeInt(1);
+            writeString(writer, groupId);
+            Message message = new Message();
+            writer.flush();
+            message.setBuffer(out.toByteArray());
+            channel.send(message);
+        } catch (Exception e) {
+            log.error("send broadcast fail", e);
+            throw new PushException(e);
+        }finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                //
+            }
+            try {
+                out.close();
+            } catch (IOException e) {
+                //
+            }
+        }
     }
 }
