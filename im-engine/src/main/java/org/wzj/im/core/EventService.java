@@ -205,8 +205,9 @@ public class EventService {
     public void onEnroll(SocketIOClient client, Enroll enroll, AckRequest ackRequest) {
 
         try {
-            if (DBUtils.saveUser(enroll.getUsername(), enroll.getNickname(), enroll.getPassword())) {
-                ackRequest.sendAckData("ok");
+            User user  = DBUtils.saveUser(String.valueOf( IdWorker.getId()), enroll.getUsername(), enroll.getNickname(), enroll.getPassword() ) ;
+            if ( user != null ) {
+                ackRequest.sendAckData("ok" , user );
             } else {
                 ackRequest.sendAckData("fail");
             }
@@ -237,11 +238,11 @@ public class EventService {
     }
 
     public void onCreateGroup(SocketIOClient client, CreateGroup createGroup, AckRequest ackRequest) {
-
         try {
             OnlineUserManager.Bind bind = client.get(Constant.BIND_KEY);
-            if (DBUtils.saveGroup(bind.userId, createGroup.getToken(), createGroup.getGroupName())) {
-                ackRequest.sendAckData("ok");
+            Group group  = DBUtils.saveGroup(bind.userId, createGroup.getToken(), createGroup.getGroupName());
+            if (group != null ) {
+                ackRequest.sendAckData("ok" , group );
             } else {
                 ackRequest.sendAckData("ok");
             }

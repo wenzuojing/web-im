@@ -159,6 +159,8 @@ public class ImEngineBootstrap {
                 log.info("Server is stopped.");
             }
         });
+
+        HttpApiController.main(args);
     }
 
 }

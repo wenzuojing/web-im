@@ -25,17 +25,17 @@ public class DBUtilsTest {
 
     @Test
     public void test_saveUser() throws SQLException {
-        boolean b = DBUtils.saveUser( RandomStringUtils.randomAlphabetic(10), RandomStringUtils.randomAlphabetic(3), "123456");
-        Assert.assertTrue(b);
+        User user = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , RandomStringUtils.randomAlphabetic(10), RandomStringUtils.randomAlphabetic(3), "123456");
+        Assert.assertNotNull(user );
     }
 
     @Test
     public void test_queryUserByUsername() throws SQLException {
         String username = RandomStringUtils.randomAlphabetic(10);
-        boolean b = DBUtils.saveUser( username , RandomStringUtils.randomAlphabetic(3), "123456");
-        Assert.assertTrue(b);
-        User user = DBUtils.queryUserByUsername(username);
+        User user   = DBUtils.saveUser( String.valueOf(IdWorker.getId()),  username , RandomStringUtils.randomAlphabetic(3), "123456");
         Assert.assertNotNull(user);
+        User user2 = DBUtils.queryUserByUsername(username);
+        Assert.assertNotNull(user2);
     }
 
     @Test
@@ -44,12 +44,8 @@ public class DBUtilsTest {
         String username2 = RandomStringUtils.randomAlphabetic(10);
         String nickname1 = RandomStringUtils.randomAlphabetic(3);
         String nickname2 = RandomStringUtils.randomAlphabetic(3);
-        boolean b1 = DBUtils.saveUser( username1 ,nickname1 , "123456");
-        boolean b2 = DBUtils.saveUser( username2 ,nickname2 , "123456");
-        Assert.assertTrue(b1);
-        Assert.assertTrue(b2);
-        User user1 = DBUtils.queryUserByUsername(username1);
-        User user2 = DBUtils.queryUserByUsername(username2);
+        User user1 = DBUtils.saveUser(  String.valueOf(IdWorker.getId()), username1 ,nickname1 , "123456");
+        User user2 = DBUtils.saveUser(  String.valueOf(IdWorker.getId()) , username2 ,nickname2 , "123456");
 
         boolean b = DBUtils.saveFriend(user1.getUserId(), user2.getUserId());
 
@@ -65,8 +61,8 @@ public class DBUtilsTest {
     public void test_queryUserByKeywork() throws SQLException {
         String username = RandomStringUtils.randomAlphabetic(10);
         String nickname = RandomStringUtils.randomAlphabetic(3);
-        boolean b = DBUtils.saveUser( username ,nickname , "123456");
-        Assert.assertTrue(b);
+        User user  = DBUtils.saveUser( String.valueOf(IdWorker.getId()) ,  username ,nickname , "123456");
+        Assert.assertNotNull(user );
         List<User> users = DBUtils.queryUserByKeywork(nickname);
         Assert.assertTrue(users.size() > 0 );
     }
@@ -75,12 +71,11 @@ public class DBUtilsTest {
     public void test_saveGroup() throws SQLException {
         String token = RandomStringUtils.randomAlphabetic(10);
         String groupName = RandomStringUtils.randomAlphabetic(10);
-        boolean b = DBUtils.saveGroup("1", token, groupName);
-        Assert.assertTrue(b);
+        Group group = DBUtils.saveGroup("1", token, groupName);
+        Assert.assertNotNull( group );
         boolean error = false ;
         try{
-            b = DBUtils.saveGroup("1" , token, groupName);
-            Assert.assertFalse(b);
+            DBUtils.saveGroup("1" , token, groupName);
         }catch (SQLException e){
             error = true ;
         }
@@ -90,18 +85,13 @@ public class DBUtilsTest {
     @Test
     public void test_saveGroupUser_queryJoinGroupBy() throws SQLException {
         String username = RandomStringUtils.randomAlphabetic(10);
-        boolean b = DBUtils.saveUser( username , RandomStringUtils.randomAlphabetic(3), "123456");
-        Assert.assertTrue(b);
-        User user = DBUtils.queryUserByUsername(username);
+        User user  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,  username , RandomStringUtils.randomAlphabetic(3), "123456");
 
         String token = RandomStringUtils.randomAlphabetic(10);
         String groupName = RandomStringUtils.randomAlphabetic(10);
-        b = DBUtils.saveGroup("1", token, groupName);
-        Assert.assertTrue(b);
+        Group group  = DBUtils.saveGroup("1", token, groupName);
 
-        Group group = DBUtils.getGroupByToken(token);
-
-        b  = DBUtils.saveGroupUser(user.getUserId(), group.getGroupId());
+        boolean b  = DBUtils.saveGroupUser(user.getUserId(), group.getGroupId());
         Assert.assertTrue(b);
 
         List<Group> groups = DBUtils.queryJoinGroupBy(user.getUserId());
@@ -116,12 +106,8 @@ public class DBUtilsTest {
         String username2 = RandomStringUtils.randomAlphabetic(10);
         String nickname1 = RandomStringUtils.randomAlphabetic(3);
         String nickname2 = RandomStringUtils.randomAlphabetic(3);
-        boolean b1 = DBUtils.saveUser( username1 ,nickname1 , "123456");
-        boolean b2 = DBUtils.saveUser( username2 ,nickname2 , "123456");
-        Assert.assertTrue(b1);
-        Assert.assertTrue(b2);
-        User user1 = DBUtils.queryUserByUsername(username1);
-        User user2 = DBUtils.queryUserByUsername(username2);
+        User user1  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,  username1 ,nickname1 , "123456");
+        User user2 = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , username2 ,nickname2 , "123456");
         ImMessage imMessage = new ImMessage();
         imMessage.setContent("hi");
         imMessage.setCreateTime(new Date());
@@ -144,20 +130,13 @@ public class DBUtilsTest {
         String username2 = RandomStringUtils.randomAlphabetic(10);
         String nickname1 = RandomStringUtils.randomAlphabetic(3);
         String nickname2 = RandomStringUtils.randomAlphabetic(3);
-        boolean b1 = DBUtils.saveUser( username1 ,nickname1 , "123456");
-        boolean b2 = DBUtils.saveUser( username2 ,nickname2 , "123456");
-        Assert.assertTrue(b1);
-        Assert.assertTrue(b2);
-        User user1 = DBUtils.queryUserByUsername(username1);
-        User user2 = DBUtils.queryUserByUsername(username2);
+        User user1  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,  username1 ,nickname1 , "123456");
+        User user2 = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , username2 ,nickname2 , "123456");
+
 
         String token = RandomStringUtils.randomAlphabetic(10);
         String groupName = RandomStringUtils.randomAlphabetic(10);
-        boolean b = DBUtils.saveGroup("1", token, groupName);
-        Assert.assertTrue(b);
-
         Group group = DBUtils.getGroupByToken(token);
-
 
         GroupMessage groupMessage = new GroupMessage();
         groupMessage.setContent("hi");

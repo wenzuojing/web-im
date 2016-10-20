@@ -142,18 +142,18 @@ public class DBUtils {
         return runner.query("select g.group_id as groupId , g.group_name as groupName  from im_group g where g.group_name like ? ", resultHandler, "%" + keyword + "%");
     }
 
-    public static boolean saveUser(String username, String nickname, String password) throws SQLException {
+    public static User saveUser(String userId , String username, String nickname, String password) throws SQLException {
         QueryRunner runner = new QueryRunner(dataSource);
-        int u = runner.update("insert into im_user (user_id , username,nickname ,password ,status ,create_time ) values (?,?,?,?,?,?)", IdWorker.getId(), username, nickname, password,0, new Date());
-        return u > 0;
+        int u = runner.update("insert into im_user (user_id , username,nickname ,password ,status ,create_time ) values (?,?,?,?,?,?)", userId, username, nickname, password,0, new Date());
+        return u > 0 ?  getUser(userId) :  null ;
     }
 
-    public static boolean saveGroup(String userId, String token, String groupName) throws SQLException {
+    public static Group saveGroup(String userId, String token, String groupName) throws SQLException {
         QueryRunner runner = new QueryRunner(dataSource);
         long groupId  = IdWorker.getId();
         int u = runner.update("insert into im_group (group_id , token ,creater  , group_name ,create_time ) values (?,?,?,?,?)", groupId, token, userId, groupName, new Date());
         saveGroupUser(userId,String.valueOf(groupId));
-        return u > 0;
+        return u > 0 ?   getGroup(String.valueOf(groupId)) : null ;
     }
 
     public static Group getGroupByToken(String token) throws SQLException {
