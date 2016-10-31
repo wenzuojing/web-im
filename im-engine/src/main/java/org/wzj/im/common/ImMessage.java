@@ -1,5 +1,8 @@
 package org.wzj.im.common;
 
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
+
 import java.util.Date;
 
 /**
@@ -71,7 +74,7 @@ public  class ImMessage {
     }
 
     public void setContent(String content) {
-        this.content = content;
+        this.content = content ;
     }
 
     public Date getCreateTime() {

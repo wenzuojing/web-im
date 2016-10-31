@@ -229,6 +229,8 @@ public class EventService {
             }
             if( DBUtils.saveGroupUser(bind.userId, groupId ) ){
                 messageExchange.pushGroupMemberChangeEvent(groupId);
+                List<Group> myGroups = DBUtils.queryJoinGroupBy(bind.userId);
+                onlineUserManager.updateBindClient(DBUtils.getUser(bind.userId), myGroups, client);
             }
             ackRequest.sendAckData("ok");
         } catch (Exception e) {

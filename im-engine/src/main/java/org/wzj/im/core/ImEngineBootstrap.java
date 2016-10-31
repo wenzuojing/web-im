@@ -7,6 +7,8 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.im.common.*;
@@ -134,6 +136,7 @@ public class ImEngineBootstrap {
         server.addEventListener("sendGroupMsg", GroupMessage.class, new DataListener<GroupMessage>() {
             @Override
             public void onData(SocketIOClient client, GroupMessage groupMessage, AckRequest ackRequest) {
+                groupMessage.setContent(Jsoup.clean(groupMessage.getContent() , Whitelist.basicWithImages() ));
                 eventService.onSendGroupMsg(client, groupMessage, ackRequest);
             }
         });
@@ -141,6 +144,7 @@ public class ImEngineBootstrap {
         server.addEventListener("sendMsg", ImMessage.class, new DataListener<ImMessage>() {
             @Override
             public void onData(SocketIOClient client, ImMessage imMessage, AckRequest ackRequest) {
+                imMessage.setContent(Jsoup.clean(imMessage.getContent() , Whitelist.basicWithImages() ));
                 eventService.onSendMsg(client, imMessage, ackRequest);
             }
         });

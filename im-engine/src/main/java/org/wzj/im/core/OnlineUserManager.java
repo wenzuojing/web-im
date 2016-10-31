@@ -82,6 +82,34 @@ public class OnlineUserManager {
 
     }
 
+    public void updateBindClient(User user, List<Group> groups, SocketIOClient client) {
+
+        lock.writeLock().lock();
+        try {
+
+            userId2Clients.remove(user.getUserId(), client);
+            userId2Clients.put(user.getUserId(), client);
+
+            Set<String> groupIds = new HashSet<>();
+            if (groups != null) {
+                for (Group g : groups) {
+                    groupIds.add(g.getGroupId());
+                }
+            }
+            for (String g : groupIds) {
+                group2Clients.remove(g, client);
+                group2Clients.put(g, client);
+            }
+
+            client.set(Constant.BIND_KEY, new Bind(user.getUserId(), groupIds));
+
+        } finally {
+            lock.writeLock().unlock();
+        }
+
+    }
+
+
     public void unbindClient(SocketIOClient client) {
 
         lock.writeLock().lock();
