@@ -7,6 +7,8 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.im.common.*;
@@ -76,7 +78,7 @@ public class ImEngineBootstrap {
         server.addEventListener("addFriend", String.class, new DataListener<String>() {
             @Override
             public void onData(SocketIOClient client, String userId, AckRequest ackRequest) {
-                eventService.onAddFriend(client, Long.valueOf(userId), ackRequest);
+                eventService.onAddFriend(client, userId, ackRequest);
             }
         });
 
@@ -91,7 +93,7 @@ public class ImEngineBootstrap {
         server.addEventListener("joinGroup", String.class, new DataListener<String>() {
             @Override
             public void onData(SocketIOClient client, String groupId, AckRequest ackRequest) {
-                eventService.onJoinGroup(client, Long.valueOf(groupId), ackRequest);
+                eventService.onJoinGroup(client, groupId, ackRequest);
             }
         });
 
@@ -120,7 +122,7 @@ public class ImEngineBootstrap {
         server.addEventListener("queryGroupHistoryMessage", String.class, new DataListener<String>() {
             @Override
             public void onData(SocketIOClient client, String groupId, AckRequest ackRequest) {
-                eventService.onQueryGroupHistoryMessage(client, Long.valueOf(groupId), ackRequest);
+                eventService.onQueryGroupHistoryMessage(client, groupId, ackRequest);
             }
         });
 
@@ -134,6 +136,7 @@ public class ImEngineBootstrap {
         server.addEventListener("sendGroupMsg", GroupMessage.class, new DataListener<GroupMessage>() {
             @Override
             public void onData(SocketIOClient client, GroupMessage groupMessage, AckRequest ackRequest) {
+                groupMessage.setContent(Jsoup.clean(groupMessage.getContent() , Whitelist.basicWithImages() ));
                 eventService.onSendGroupMsg(client, groupMessage, ackRequest);
             }
         });
@@ -141,6 +144,7 @@ public class ImEngineBootstrap {
         server.addEventListener("sendMsg", ImMessage.class, new DataListener<ImMessage>() {
             @Override
             public void onData(SocketIOClient client, ImMessage imMessage, AckRequest ackRequest) {
+                imMessage.setContent(Jsoup.clean(imMessage.getContent() , Whitelist.basicWithImages() ));
                 eventService.onSendMsg(client, imMessage, ackRequest);
             }
         });
@@ -159,6 +163,8 @@ public class ImEngineBootstrap {
                 log.info("Server is stopped.");
             }
         });
+
+        HttpApiController.main(args);
     }
 
 }

@@ -7,27 +7,27 @@ import java.util.Date;
  */
 public class Friend {
 
-    private Long aUserId;
-    private Long bUserId;
+    private String aUserId;
+    private String bUserId;
     private String aUsername;
     private String bUsername;
     private Integer aStatus;
     private Integer bStatus;
     private Date createTime;
 
-    public Long getaUserId() {
+    public String getaUserId() {
         return aUserId;
     }
 
-    public void setaUserId(Long aUserId) {
+    public void setaUserId(String aUserId) {
         this.aUserId = aUserId;
     }
 
-    public Long getbUserId() {
+    public String getbUserId() {
         return bUserId;
     }
 
-    public void setbUserId(Long bUserId) {
+    public void setbUserId(String bUserId) {
         this.bUserId = bUserId;
     }
 

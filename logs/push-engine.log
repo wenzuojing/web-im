@@ -1,3 +1,0 @@
-2016-09-18 09:16:53.667 [Thread-1] INFO  org.wzj.im.core.ImEngineBootstrap - Server is stopping ......
-2016-09-18 09:16:58.018 [Thread-1] INFO  com.corundumstudio.socketio.SocketIOServer - SocketIO server stopped
-2016-09-18 09:16:58.028 [Thread-1] INFO  org.wzj.im.core.ImEngineBootstrap - Server is stopped.

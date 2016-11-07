@@ -1,4 +1,4 @@
-package org.wzj.im.common;
+package org.wzj.im.core;
 
 /**
  * Created by wens on 15-11-11.

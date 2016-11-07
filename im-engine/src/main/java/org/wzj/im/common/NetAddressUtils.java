@@ -1,5 +1,7 @@
 package org.wzj.im.common;
 
+import org.wzj.im.core.AddressAndPort;
+
 /**
  * Created by wens on 15-11-11.
  */

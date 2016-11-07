@@ -13,148 +13,459 @@
             padding: 20px;
         }
 
-        #groupMembers {
-            height: 400px;
+        .left-pan, .right-pan {
+            height: 500px;
+            border: 1px #cccccc solid;
             overflow: auto;
+            position: relative;
         }
 
-        #console {
-            height: 300px;
-            overflow: auto;
+        .friends {
+            height: 90%;
         }
 
-        .username-msg {
-            color: orange;
+        .has-new-msg:after{
+            content: ' new msg';
         }
 
-        .connect-msg {
-            color: green;
+        .msg-win-bottom {
+            border-top: 1px #cccccc solid;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
-        .disconnect-msg {
-            color: red;
+        .msg-win-title {
+            text-align: center;
+            font-weight: bold;
         }
 
-        .send-msg {
-            color: #888
+        .msg-win-body{
+            height: 85%;
+            border-top: 1px #cccccc solid;
+            clear: both;
         }
+
+        .msg-input {
+            border-width: 0;
+            width: 620px;
+
+        }
+        .msg-console{
+            width: 550px;
+            height: 100%;
+            float: left;
+        }
+        .msg-more-info{
+            float: left;
+            width: 145px;
+            height: 100%;
+            border-left: 1px #cccccc solid ;
+        }
+
+        .msg-send-btn {
+            height: 50px;
+        }
+
+        .search-input-area {
+            text-align: center;
+            margin-bottom: 10px;
+            margin-top: 10px;
+        }
+
+        .search-result {
+            clear: both;
+            padding: 20px;
+        }
+
+        .search-result-item {
+            width: 80px;
+            float: left;
+        }
+
+
     </style>
 
 
     <script src="js/socket.io/socket.io.js"></script>
     <script src="js/moment.min.js"></script>
-    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+    <script src="js/jquery-1.7.2.min.js"></script>
+    <script src="js/bootstrap.js"></script>
 
     <script>
 
         var socket = io.connect('http://localhost:8080?key=2');
-        var membersMap = {};
+        var currentUser = {} ;
+        var friends = [];
+        var groups = [];
+        var receiveMessages = {} ;
+        var newMessages = {} ;
 
         socket.on('connect', function () {
-            output('<span class="connect-msg">Client has connected target the server!</span>');
+            //output('<span class="connect-msg">Client has connected target the server!</span>');
 
         });
         socket.on('disconnect', function () {
-            output('<span class="disconnect-msg">The client has disconnected!</span>');
+            //output('<span class="disconnect-msg">The client has disconnected!</span>');
         });
 
-        socket.on('groupMemberChangeEvent', function (group) {
-            socket.emit('groupMembers', group, function (members) {
-                handleGroupMember(members);
-            });
-        });
+        socket.on('messageEvent', function (message, ackServerCallback) {
+            saveMessage(message);
+            if($("#msgArea").data("target") && $("#msgArea").data("target").indexOf(message.sender) != -1 ){
+                outputMessage( message ) ;
+            }else{
 
-        socket.on('messageEvent', function (data, ackServerCallback) {
-            output(( membersMap[data.fromId] ? membersMap[data.fromId].username : data.fromId ) + ':' + data.content)
+                if( !newMessages[message.sender] ){
+                    newMessages[message.sender] = 0 ;
+                }
+                newMessages[message.sender] += 1 ;
+                $('#friend-' + message.sender ).addClass('has-new-msg') ;
+            }
+
             if (ackServerCallback) {
                 ackServerCallback();
             }
         });
 
-
-        function getGroupHistoryMessage(group) {
-            socket.emit('groupHistoryMessage', group, function (messages) {
-                console.log("group history message : " + JSON.stringify(messages));
-            });
-        }
-
-        function handleGroupMember(members) {
-            var html = '';
-            for (var i = 0; i < members.length; i++) {
-                var m = members[i];
-                membersMap[m.userId] = m;
-                html += '<div class="member">' + m.username + ' ' + (m.status == 1 ? '在线' : '离线') + '</div>'
+        socket.on('groupMessageEvent', function (message, ackServerCallback) {
+            saveGroupMessage(message);
+            if($("#msgArea").data("target") && $("#msgArea").data("target").indexOf(message.groupId) != -1 ){
+                outputGroupMessage( message ) ;
+            }else{
+                if( !newMessages[message.groupId] ){
+                    newMessages[message.groupId] = 0 ;
+                }
+                newMessages[message.groupId] += 1 ;
+                $('#group-' + message.groupId ).addClass('has-new-msg') ;
             }
-            $("#groupMembers").html(html);
+
+            if (ackServerCallback) {
+                ackServerCallback();
+            }
+        });
+
+        socket.on('onlineEvent', function (data, ackServerCallback) {
+            updateFriend();
+        });
+
+        socket.on('offlineEvent', function (data, ackServerCallback) {
+            updateFriend();
+        });
+
+        socket.on('groupMemberOnlineEvent', function (groupId, ackServerCallback) {
+            if($("#msgArea").data("target") && $("#msgArea").data("target").indexOf(groupId) != 0 ){
+                renderGroupMember(groupId) ;
+            }
+        });
+
+        socket.on('groupMemberOfflineEvent', function (groupId, ackServerCallback) {
+            if($("#msgArea").data("target").indexOf(groupId) != 0 ){
+                renderGroupMember(groupId) ;
+            }
+        });
+
+        socket.on('groupMemberChangeEvent', function (groupId, ackServerCallback) {
+            if($("#msgArea").data("target").indexOf(groupId) != 0 ){
+                renderGroupMember(groupId) ;
+            }
+        });
+
+        function saveMessage(message){
+            if( !receiveMessages[message.sender] ){
+                receiveMessages[message.sender] = [];
+            }
+            receiveMessages[message.sender].push(message);
+        }
+        function saveGroupMessage(message){
+            if( !receiveMessages[message.groupId] ){
+                receiveMessages[message.groupId] = [];
+            }
+            receiveMessages[message.groupId].push(message);
         }
 
-        function join(userId, username, group) {
+        function renderFriendAndGroup() {
 
-            $("#sendMsgBtn").data("userId", userId).data("username", username).data("group", group);
+            var html = '<li class="nav-header">Friend</li><li><a href="javascript:;" id="friend-add">Add Friend</a></li><li class="divider"></li>';
 
-            socket.emit('join', {
-                "userId": userId,
-                "username": username,
-                "groups": [group]
-            }, function (result, groupMembers) {
+            for (var i = 0; i < friends.length; i++) {
+                var f = friends[i];
+                html += '<li><a href="javascript:;" id="friend-' + f.userId + '" data-name="' + f.nickname + '" class="'+(newMessages[f.userId] ? 'has-new-msg':'')+'">' + f.nickname + ' ' + (f.status == 1 ? 'online' : 'offline') + '</a></li>';
+            }
 
+            html += '<li class="nav-header">Group</li><li><a href="javascript:;" id="group-add">Join Group</a></li><li><a href="javascript:;" id="group-create">Create Group</a></li><li class="divider"></li>';
+            for (var i = 0; i < groups.length; i++) {
+                var g = groups[i];
+                html += '<li><a href="javascript:;" id="group-' + g.groupId + '" data-name="' + g.groupName + '"  class="'+(newMessages[g.groupId] ? 'has-new-msg':'')+'">' + g.groupName + '</a></li>';
+            }
+
+            $("#friendAndGroup").html(html);
+        }
+
+        function updateJoinGroup() {
+            socket.emit('queryMyGroup', '', function (result, gs) {
                 if (result == 'ok') {
-                    console.log("group member : " + JSON.stringify(groupMembers));
-                    handleGroupMember(groupMembers[group]);
-                    getGroupHistoryMessage(group);
+                    groups = gs;
+                    renderFriendAndGroup();
                 } else {
-                    console.log("join fail");
+                    alert('Update Join group fail');
                 }
             });
+        }
 
+        function updateFriend(){
+            socket.emit('queryMyFriend', currentUser.userId , function (result, fs) {
+                if (result == 'ok') {
+                    friends = fs ;
+                    renderFriendAndGroup();
+                } else {
+                    alert('Update Join group fail');
+                }
+            });
+        }
+
+        function renderGroupMember(groupId) {
+            socket.emit('queryGroupMember', groupId , function (result, members) {
+                if (result == 'ok') {
+                    var html = '';
+                    for (var i = 0; i < members.length; i++) {
+                        var m = members[i];
+                        html += '<div class="member">' + m.username + ' ' + (m.status == 1 ? 'online' : 'offline') + '</div>'
+                    }
+                    $("#msgArea .msg-more-info").html(html);
+                } else {
+                    alert('Update group member fail');
+                }
+            });
         }
 
 
-        function output(message) {
+        function outputMessage(message) {
             var currentTime = "<span class='time'>" + moment().format('HH:mm:ss') + "</span>";
-            var element = $("<div>" + currentTime + ":" + message + "</div>");
-            $('#console').prepend(element);
+            var element = $("<div>" + currentTime + ":" + ( message.sender == currentUser.userId ? '我' : message.senderName ) +':' + message.content + "</div>");
+            $('#msgArea .msg-console').append(element);
         }
 
-        function goJoin() {
-            join($("#userId").val(), $("#username").val(), $("#group").val())
+        function outputGroupMessage(message) {
+            var currentTime = "<span class='time'>" + moment().format('HH:mm:ss') + "</span>";
+            var element = $("<div>" + currentTime + ":" + ( message.sender == currentUser.userId ? '我' : message.senderName ) + ':' + message.content + "</div>");
+            $('#msgArea .msg-console').append(element);
         }
 
-        function enroll(){
+        function outputHistoryMessage(target){
+            var msgs = receiveMessages[target] || [] ;
+            $('#msgArea .msg-console').html('');
+            for(var i = 0 ;i < msgs.length ; i++ ){
+                outputMessage(msgs[i]);//The best is batch opt
+            }
+        }
+        function outputHistoryGroupMessage(target){
+            var msgs = receiveMessages[target] || [] ;
+            $('#msgArea .msg-console').html('');
+            for(var i = 0 ;i < msgs.length ; i++ ){
+                outputGroupMessage(msgs[i]);//The best is batch opt
+            }
+        }
+
+        function enroll() {
             socket.emit('enroll', {
-                username : $("#username").val(),
-                nickname : $("#nickname").val(),
-                password : $("#password").val()
+                username: $("#username").val(),
+                nickname: $("#nickname").val(),
+                password: $("#password").val()
             }, function (result) {
-
-                alert(result)
+                socket.emit('login', {
+                    username: $("#username").val(),
+                    password: $("#password").val()
+                }, function (result, u, fs, gs) {
+                    currentUser = u ;
+                    friends = fs;
+                    groups = gs;
+                    renderFriendAndGroup();
+                });
             });
         }
 
         $(function () {
             $("#sendMsgBtn").click(function () {
 
-                var content = $("#inputMsg").val().trim();
-                var group = $(this).data("group");
+                var content = $("#msgInput").val().trim();
+
                 if (content == '') {
                     alert('Please input content');
                     return;
                 }
-                if (!group) {
-                    alert('Please join a group');
+
+                var target = $("#msgArea").data("target");
+
+                if(target.indexOf('friend-')  != -1 ){
+                    var msg = {
+                            type : 1,
+                            msgType : 1,//text msg
+                            sender : currentUser.userId ,
+                            target : target.substring(target.indexOf('-') + 1 ) ,
+                            content: content
+                    } ;
+                    outputGroupMessage(msg);
+                    saveMessage(msg);
+                    socket.emit('sendMsg', msg , function (result) {
+                        if (result == 'ok') {
+                            $("#msgInput").val('');
+                        } else {
+                            alert("Send fail");
+                        }
+                    });
+                }else if(target.indexOf('group-')  != -1 ){
+                    var msg  = {
+                            type : 1,
+                            msgType : 1,//text msg
+                            sender : currentUser.userId ,
+                            groupId : target.substring(target.indexOf('-') + 1 ) ,
+                            content: content
+                    } ;
+                    outputGroupMessage(msg);
+                    saveGroupMessage(msg);
+                    socket.emit('sendGroupMsg',msg , function (result) {
+                        if (result == 'ok') {
+                            $("#msgInput").val('');
+                        } else {
+                            alert("Send fail");
+                        }
+                    });
+                }
+
+
+            });
+
+            $("#friendAndGroup li a").live("click", function () {
+                var target = $(this).attr('id');
+                $('.right-pan').hide();
+                if (target == 'friend-add') {
+                    $('#addFriend').show();
+                } else if (target == 'group-add') {
+                    $('#joinGroup').show();
+                } else if (target == 'group-create') {
+                    $('#createGroup').show();
+                } else {
+
+                    var name = $(this).data('name');
+                    var id  = target.substring(target.lastIndexOf('-') + 1 ) ;
+                    delete newMessages[id];
+
+                    $('#'+target).removeClass('has-new-msg');
+
+                    $("#msgArea .msg-win-title").text(name);
+                    if (target.indexOf('friend-') != -1) {
+                        $("#msgArea .msg-more-info").html('');
+                        outputHistoryMessage(id);
+                    } else {//group
+                        renderGroupMember(id);
+                        outputHistoryGroupMessage(id);
+                    }
+
+                    $('#msgArea').data('target' , target ).show();
+                }
+            });
+
+            $("#addFriend .search-input-area button").click(function () {
+                var keyword = $("#addFriend .search-input-area input").val().trim();
+                if (keyword == '') {
+                    alert('Please input account or nickname');
                     return;
                 }
-                socket.emit('sendGroupMsg', {
-                    group: group,
-                    content: content
-                }, function (result) {
+
+                socket.emit('queryUser', keyword, function (result, users) {
                     if (result == 'ok') {
-                        $("#inputMsg").val('');
+                        var html = '';
+                        for (var i = 0; i < users.length; i++) {
+                            html += '<div class="search-result-item"><div >' + users[i].nickname + '</div><div><button type="button" class="btn btn-mini" user="' + users[i].userId + '">Add</button></div></div>';
+                        }
+
+                        $("#addFriend .search-result").html(html);
+                        if (html == '') {
+                            alert("Not found")
+                        }
+
                     } else {
-                        alert("Send fail hi");
+                        alert("Search fail");
                     }
                 });
             });
+
+            $("#addFriend .search-result-item button").live('click', function () {
+                var userId = $(this).attr('user');
+                socket.emit('addFriend', userId, function (result) {
+                    if (result == 'ok') {
+                        alert('Success add');
+                    } else {
+<<<<<<< HEAD
+                        alert("Send fail hi");
+=======
+                        alert("Add fail");
+>>>>>>> 4de4d42434931ffd85cf06c4e193abcb37afa774
+                    }
+                });
+            });
+
+            $("#joinGroup .search-input-area button").click(function () {
+                var keyword = $("#joinGroup .search-input-area input").val().trim();
+                if (keyword == '') {
+                    alert('Please input group name');
+                    return;
+                }
+
+                socket.emit('queryGroup', keyword, function (result, gs) {
+                    if (result == 'ok') {
+                        var html = '';
+                        for (var i = 0; i < gs.length; i++) {
+                            html += '<div class="search-result-item"><div >' + gs[i].groupName + '</div><div><button type="button" class="btn btn-mini" group="' + gs[i].groupId + '">Join</button></div></div>';
+                        }
+
+                        $("#joinGroup .search-result").html(html);
+                        if (html == '') {
+                            alert("Not found")
+                        }
+
+                    } else {
+                        alert("Search fail");
+                    }
+                });
+            });
+
+            $("#joinGroup .search-result-item button").live('click', function () {
+                var groupId = $(this).attr('group');
+                socket.emit('joinGroup', groupId, function (result) {
+                    if (result == 'ok') {
+                        updateJoinGroup();
+                        alert('Success add');
+                    } else {
+                        alert("Add fail");
+                    }
+                });
+            });
+
+
+            $("#createGroup .search-input-area button").click(function () {
+                var groupName = $("#createGroup .search-input-area input").val().trim();
+                if (groupName == '') {
+                    alert('Please input group name');
+                    return;
+                }
+
+                socket.emit('createGroup', {
+                    token: groupName,
+                    groupName: groupName
+                }, function (result, gs) {
+                    if (result == 'ok') {
+                        updateJoinGroup();
+                        alert("Create success")
+                    } else {
+                        alert("Create fail");
+                    }
+                });
+            });
+
+            renderFriendAndGroup();
         });
 
     </script>
@@ -168,24 +479,57 @@
 
 <div class="container">
     <form class="well form-inline" onsubmit="return false;">
-        <input id="username"  type="text" placeholder="account" />
-        <input id="nickname"  type="text" placeholder="nickname" />
-        <input id="password"  type="password" placeholder="password" value="123456" />
+        <input id="username" type="text" placeholder="account" value="wens007"/>
+        <input id="nickname" type="text" placeholder="nickname" value="佐镜兄007"/>
+        <input id="password" type="password" placeholder="password" value="123456"/>
         <button type="button" onClick="enroll()" class="btn">Enroll</button>
 
 
     </form>
     <div class="row">
-        <div class="span4">
-            <div id="groupMembers" class="well">
+        <div class="span3">
+            <div class="left-pan">
+                <div class="friends">
+                    <ul id="friendAndGroup" class="nav nav-list">
 
+                    </ul>
+                </div>
             </div>
         </div>
-        <div class="span8">
-            <div id="console" class="well"></div>
-            <div class="well form-inline">
-                <input id="inputMsg" class="input-xlarge" type="text" placeholder="Type input..."/>
-                <button id="sendMsgBtn" type="button">Send</button>
+        <div class="span9">
+            <div id="default" class="right-pan">
+                default page
+            </div>
+            <div id="addFriend" class="right-pan hide">
+                <div class="form-inline search-input-area"><input type="text" placeholder="account/nickname">
+                    <button type="button" class="btn">Search</button>
+                </div>
+                <div class="search-result"></div>
+            </div>
+            <div id="joinGroup" class="right-pan hide">
+                <div class="form-inline search-input-area"><input type="text" placeholder="group name">
+                    <button type="button" class="btn">Search</button>
+                </div>
+                <div class="search-result"></div>
+            </div>
+            <div id="createGroup" class="right-pan hide">
+                <div class="form-inline search-input-area"><input type="text" placeholder="group name">
+                    <button type="button" class="btn">Create</button>
+                </div>
+            </div>
+            <div id="msgArea" class="right-pan">
+                <div class="msg-win-title"></div>
+                <div class="msg-win-body">
+                    <div class="msg-console"></div>
+                    <div class="msg-more-info">
+
+                    </div>
+                </div>
+
+                <div class="msg-win-bottom form-inline">
+                    <textarea id="msgInput" rows="2" class="msg-input"></textarea>
+                    <button id="sendMsgBtn" type="button" class="btn msg-send-btn">Send</button>
+                </div>
             </div>
         </div>
     </div>
