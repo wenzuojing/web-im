@@ -35,6 +35,7 @@ public class ImEngineBootstrap {
         nettySocketIOConfig.setBossThreads(appConfig.getBossThreads());
         nettySocketIOConfig.setWorkerThreads(appConfig.getWorkerThreads());
         nettySocketIOConfig.setMaxFramePayloadLength(appConfig.getMaxPayload());
+        //nettySocketIOConfig.setOrigin("*");
 
 
         final SocketIOServer server = new SocketIOServer(nettySocketIOConfig);
