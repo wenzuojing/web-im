@@ -6,6 +6,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.wzj.im.common.*;
 import org.wzj.im.core.Config;
+import org.wzj.im.core.HistoryMessageQuery;
 
 import java.sql.SQLException;
 import java.util.Date;
@@ -99,6 +100,8 @@ public class DBUtilsTest {
         Assert.assertTrue(groups.size() > 0 );
     }
 
+
+
     @Test
     public void test_saveMessage() throws SQLException {
 
@@ -156,6 +159,19 @@ public class DBUtilsTest {
         List<GroupMessage> messages = DBUtils.queryGroupHistoryMessage(group.getGroupId());
 
         Assert.assertEquals(1, messages.size() );
+
+    }
+
+
+    @Test
+    public void test_saveGroupMessage_queryGroupHistoryMessage2() throws SQLException {
+
+
+        HistoryMessageQuery historyMessageQuery = new HistoryMessageQuery();
+        historyMessageQuery.setGroupId("483469600906805248");
+        List<GroupMessage> messages = DBUtils.queryGroupHistoryMessage(historyMessageQuery);
+
+        Assert.assertTrue(messages.size() > 0 );
 
     }
 

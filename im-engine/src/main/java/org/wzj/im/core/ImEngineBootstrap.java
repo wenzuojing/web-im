@@ -1,9 +1,6 @@
 package org.wzj.im.core;
 
-import com.corundumstudio.socketio.AckRequest;
-import com.corundumstudio.socketio.Configuration;
-import com.corundumstudio.socketio.SocketIOClient;
-import com.corundumstudio.socketio.SocketIOServer;
+import com.corundumstudio.socketio.*;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
@@ -14,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.wzj.im.common.*;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Created by wens on 15-11-9.
@@ -35,6 +33,7 @@ public class ImEngineBootstrap {
         nettySocketIOConfig.setBossThreads(appConfig.getBossThreads());
         nettySocketIOConfig.setWorkerThreads(appConfig.getWorkerThreads());
         nettySocketIOConfig.setMaxFramePayloadLength(appConfig.getMaxPayload());
+        nettySocketIOConfig.setTransports(Transport.POLLING);
         //nettySocketIOConfig.setOrigin("*");
 
 
@@ -124,6 +123,13 @@ public class ImEngineBootstrap {
             @Override
             public void onData(SocketIOClient client, String groupId, AckRequest ackRequest) {
                 eventService.onQueryGroupHistoryMessage(client, groupId, ackRequest);
+            }
+        });
+
+        server.addEventListener("queryGroupHistoryMessage2", HistoryMessageQuery.class, new DataListener<HistoryMessageQuery>() {
+            @Override
+            public void onData(SocketIOClient client, HistoryMessageQuery query, AckRequest ackRequest) {
+                eventService.onQueryGroupHistoryMessage(client, query, ackRequest);
             }
         });
 

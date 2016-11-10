@@ -83,6 +83,18 @@ public class EventService {
         ackRequest.sendAckData("ok" ,groupMessages);
     }
 
+    public void onQueryGroupHistoryMessage(SocketIOClient client, HistoryMessageQuery query, AckRequest ackRequest) {
+
+        List<GroupMessage> groupMessages = null;
+        try {
+            groupMessages = DBUtils.queryGroupHistoryMessage(query);
+        } catch (SQLException e) {
+            log.error("queryGroupHistoryMessage() fail", e);
+            groupMessages = Collections.emptyList();
+        }
+        ackRequest.sendAckData("ok" ,groupMessages);
+    }
+
     public void onQueryGroupMember(SocketIOClient client, String groupId, AckRequest ackRequest) {
         List<User> users = null;
         try {

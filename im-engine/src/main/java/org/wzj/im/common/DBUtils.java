@@ -5,6 +5,7 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.BeanHandler;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.wzj.im.core.Config;
+import org.wzj.im.core.HistoryMessageQuery;
 
 import java.sql.SQLException;
 import java.util.Date;
@@ -61,6 +62,22 @@ public class DBUtils {
         return runner.query("select m.msg_id as msgId ,m.group_id as groupId,m.sender as sender ,m.sender_name as senderName , m.content as content , m.create_time as createTime,m.group_name as groupName  " +
                 "from im_group_message m " +
                 "where m.group_id = ?  order by m.create_time ", resultHandler, groupId);
+    }
+
+    public static List<GroupMessage> queryGroupHistoryMessage(HistoryMessageQuery query) throws SQLException {
+
+        if(query.getLimit() == null ){
+            query.setLimit(20);
+        }
+        if(query.getSince() == null){
+            query.setSince(new Date().getTime());
+        }
+
+        QueryRunner runner = new QueryRunner(dataSource);
+        BeanListHandler<GroupMessage> resultHandler = new BeanListHandler<>(GroupMessage.class);
+        return runner.query("select m.msg_id as msgId ,m.group_id as groupId,m.sender as sender ,m.sender_name as senderName , m.content as content , m.create_time as createTime,m.group_name as groupName  " +
+                "from im_group_message m " +
+                "where m.group_id = ? and m.create_time < ?  order by m.create_time limit ?  ", resultHandler, query.getGroupId() , new Date(query.getSince()) , query.getLimit() );
     }
 
     public static List<User> queryGroupMembers(String groupId) throws SQLException {
