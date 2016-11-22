@@ -7,10 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.wzj.im.common.*;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by wens on 16/9/17.
@@ -21,10 +18,12 @@ public class EventService {
 
     private final OnlineUserManager onlineUserManager = new OnlineUserManager();
     private final MessageExchange messageExchange = new MessageExchange();
+    private BlacklistService blacklistService ;
 
-    public EventService() {
+    public EventService(BlacklistService blacklistService) {
         onlineUserManager.setMessageExchange(messageExchange);
         messageExchange.setOnlineUserManager(onlineUserManager);
+        this.blacklistService = blacklistService ;
     }
 
 
@@ -96,9 +95,16 @@ public class EventService {
     }
 
     public void onQueryGroupMember(SocketIOClient client, String groupId, AckRequest ackRequest) {
-        List<User> users = null;
+        List<GroupUser> users = null;
         try {
-            users = DBUtils.queryGroupMembers(groupId);
+            List<User> userList = DBUtils.queryGroupMembers(groupId);
+            Map<String, Boolean> groupBlackListMap = blacklistService.getGroupBlackList(groupId);
+            users = new ArrayList<>(userList.size());
+            for(User user : userList ){
+                GroupUser groupUser = new GroupUser(user);
+                groupUser.setInGropuBlackList(groupBlackListMap.containsKey(user.getUserId()));
+                users.add(groupUser);
+            }
         } catch (SQLException e) {
             log.error("queryGroupMembers() fail", e);
             users = Collections.EMPTY_LIST;
@@ -108,6 +114,12 @@ public class EventService {
 
     public void onSendGroupMsg(SocketIOClient client, GroupMessage groupMessage, AckRequest ackRequest) {
         try {
+
+            if(blacklistService.inGroupBlackList(groupMessage.getGroupId(),groupMessage.getSender())){
+                ackRequest.sendAckData("fail","你被管理员禁言了");
+                return ;
+            }
+
             messageExchange.pushGroupMessage(client, groupMessage);
             ackRequest.sendAckData("ok");
         } catch (Exception e) {
@@ -290,6 +302,30 @@ public class EventService {
         }
     }
 
+    public void onAddGroupBlacklist(SocketIOClient client, GroupBlacklist groupBlacklist, AckRequest ackRequest) {
+
+        try {
+            blacklistService.addGroupBlackList(groupBlacklist.getGroupId(),groupBlacklist.getUserId());
+            ackRequest.sendAckData("ok");
+        } catch (Exception e) {
+            log.error("Add group black list fail", e);
+            ackRequest.sendAckData("fail");
+        }
+
+    }
+
+    public void onDelGroupBlacklist(SocketIOClient client, GroupBlacklist groupBlacklist, AckRequest ackRequest) {
+
+        try {
+            blacklistService.delGroupBlackList(groupBlacklist.getGroupId(),groupBlacklist.getUserId());
+            ackRequest.sendAckData("ok");
+        } catch (Exception e) {
+            log.error("Del group black list fail", e);
+            ackRequest.sendAckData("fail");
+        }
+
+    }
+
     public void start() {
         messageExchange.start();
     }
@@ -298,6 +334,12 @@ public class EventService {
         messageExchange.stop();
     }
 
-
-
+    public void onHeartbeat(SocketIOClient client, String timestamp, AckRequest ackRequest) {
+        try {
+            ackRequest.sendAckData("ok" , System.currentTimeMillis() );
+        } catch (Exception e) {
+            log.error("Send heartbeat fail", e);
+            ackRequest.sendAckData("fail");
+        }
+    }
 }

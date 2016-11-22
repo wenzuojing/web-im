@@ -29,6 +29,10 @@ public class Config {
 
     private String dbPassword;
 
+    private String redisHost ;
+
+    private int redisPort ;
+
     public Config() {
         this(Constant.CLASS_PATH_PREFIX + "config.properties");
     }
@@ -69,6 +73,8 @@ public class Config {
         this.dbUrl = prop.getProperty("jdbc.url");
         this.dbUser = prop.getProperty("jdbc.username");
         this.dbPassword = prop.getProperty("jdbc.password");
+        this.redisHost = prop.getProperty("redis.host");
+        this.redisPort = Integer.parseInt(prop.getProperty("redis.port"));
 
     }
 
@@ -127,5 +133,21 @@ public class Config {
 
     public void setDbPassword(String dbPassword) {
         this.dbPassword = dbPassword;
+    }
+
+    public String getRedisHost() {
+        return redisHost;
+    }
+
+    public void setRedisHost(String redisHost) {
+        this.redisHost = redisHost;
+    }
+
+    public int getRedisPort() {
+        return redisPort;
+    }
+
+    public void setRedisPort(int redisPort) {
+        this.redisPort = redisPort;
     }
 }

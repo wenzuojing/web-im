@@ -2,11 +2,13 @@ package org.wzj.im.common;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.ResultSetHandler;
 import org.apache.commons.dbutils.handlers.BeanHandler;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.wzj.im.core.Config;
 import org.wzj.im.core.HistoryMessageQuery;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
@@ -61,7 +63,7 @@ public class DBUtils {
         BeanListHandler<GroupMessage> resultHandler = new BeanListHandler<>(GroupMessage.class);
         return runner.query("select m.msg_id as msgId ,m.group_id as groupId,m.sender as sender ,m.sender_name as senderName , m.content as content , m.create_time as createTime,m.group_name as groupName  " +
                 "from im_group_message m " +
-                "where m.group_id = ?  order by m.create_time ", resultHandler, groupId);
+                "where m.group_id = ?  order by m.create_time desc ", resultHandler, groupId);
     }
 
     public static List<GroupMessage> queryGroupHistoryMessage(HistoryMessageQuery query) throws SQLException {
@@ -77,7 +79,7 @@ public class DBUtils {
         BeanListHandler<GroupMessage> resultHandler = new BeanListHandler<>(GroupMessage.class);
         return runner.query("select m.msg_id as msgId ,m.group_id as groupId,m.sender as sender ,m.sender_name as senderName , m.content as content , m.create_time as createTime,m.group_name as groupName  " +
                 "from im_group_message m " +
-                "where m.group_id = ? and m.create_time < ?  order by m.create_time limit ?  ", resultHandler, query.getGroupId() , new Date(query.getSince()) , query.getLimit() );
+                "where m.group_id = ? and m.create_time < ?  order by m.create_time desc limit ?  ", resultHandler, query.getGroupId() , new Date(query.getSince()) , query.getLimit() );
     }
 
     public static List<User> queryGroupMembers(String groupId) throws SQLException {
@@ -192,5 +194,22 @@ public class DBUtils {
 
     public static List<String> getAllFriendIncludeGroupFriend(String userId) {
         return null;
+    }
+
+    public static Long  groupOnlineCount(String groupId) throws SQLException {
+        QueryRunner runner = new QueryRunner(dataSource);
+        Long nu = runner.query("select count(*) nu  from im_group_user gu left join im_user u  on gu.user_id  =  u.user_id where u.status = 1 and  gu.group_id = ? ", new ResultSetHandler<Long>() {
+            @Override
+            public Long handle(ResultSet resultSet) throws SQLException {
+                if(resultSet.next()){
+                    return resultSet.getLong("nu") ;
+                }else{
+                    return 0L;
+                }
+
+            }
+        }, groupId);
+        return nu ;
+
     }
 }

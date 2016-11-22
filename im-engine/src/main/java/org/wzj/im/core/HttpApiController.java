@@ -51,6 +51,16 @@ public class HttpApiController  extends SpringBootServletInitializer implements 
         }
     }
 
+    @RequestMapping("/api/group/online/count")
+    @ResponseBody
+    public ReturnResult userEnroll( @RequestParam("groupId")String groupId) {
+        try {
+            return ReturnResult.success(DBUtils.groupOnlineCount(groupId));
+        } catch (SQLException e) {
+            return ReturnResult.fail("group online count fail") ;
+        }
+    }
+
     @RequestMapping("/api/user/enroll")
     @ResponseBody
     public ReturnResult userEnroll( @RequestParam("username")String username,@RequestParam("nickname")String nickname ,@RequestParam("password")String password) {
@@ -61,6 +71,8 @@ public class HttpApiController  extends SpringBootServletInitializer implements 
             return ReturnResult.fail("Enroll fail") ;
         }
     }
+
+
 
     public static void main(String[] args) {
         SpringApplication.run(HttpApiController.class, args);

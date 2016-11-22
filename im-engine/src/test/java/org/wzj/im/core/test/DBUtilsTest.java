@@ -175,6 +175,17 @@ public class DBUtilsTest {
 
     }
 
+    @Test
+    public void test_groupOnlineCount() throws SQLException {
+
+        String groupId  = String.valueOf(483469600906805248l) ;
+
+        Long aLong = DBUtils.groupOnlineCount(groupId);
+
+        Assert.assertTrue(  aLong > 0  );
+
+    }
+
 
 
 

@@ -9,6 +9,7 @@ import org.jsoup.safety.Whitelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.im.common.*;
+import redis.clients.jedis.JedisPool;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -33,12 +34,14 @@ public class ImEngineBootstrap {
         nettySocketIOConfig.setBossThreads(appConfig.getBossThreads());
         nettySocketIOConfig.setWorkerThreads(appConfig.getWorkerThreads());
         nettySocketIOConfig.setMaxFramePayloadLength(appConfig.getMaxPayload());
-        nettySocketIOConfig.setTransports(Transport.POLLING);
+        //nettySocketIOConfig.setTransports(Transport.POLLING);
         //nettySocketIOConfig.setOrigin("*");
 
+        final JedisPool jedisPool = new JedisPool(appConfig.getRedisHost(),appConfig.getRedisPort());
 
         final SocketIOServer server = new SocketIOServer(nettySocketIOConfig);
-        final EventService eventService = new EventService();
+        final BlacklistService blacklistService = new BlacklistService(jedisPool);
+        final EventService eventService = new EventService(blacklistService);
 
         server.addConnectListener(new ConnectListener() {
             @Override
@@ -156,6 +159,27 @@ public class ImEngineBootstrap {
             }
         });
 
+        server.addEventListener("addGroupBlacklist", GroupBlacklist.class, new DataListener<GroupBlacklist>() {
+            @Override
+            public void onData(SocketIOClient client, GroupBlacklist groupBlacklist, AckRequest ackRequest) {
+                eventService.onAddGroupBlacklist(client, groupBlacklist, ackRequest);
+            }
+        });
+
+        server.addEventListener("delGroupBlacklist", GroupBlacklist.class, new DataListener<GroupBlacklist>() {
+            @Override
+            public void onData(SocketIOClient client, GroupBlacklist groupBlacklist, AckRequest ackRequest) {
+                eventService.onDelGroupBlacklist(client, groupBlacklist, ackRequest);
+            }
+        });
+
+        server.addEventListener("heartbeat",String.class, new DataListener<String>() {
+            @Override
+            public void onData(SocketIOClient client, String timestamp, AckRequest ackRequest) {
+                eventService.onHeartbeat(client, timestamp, ackRequest);
+            }
+        });
+
         log.info("Server is starting ......");
         eventService.start();
         server.start();
@@ -167,6 +191,7 @@ public class ImEngineBootstrap {
                 log.info("Server is stopping ......");
                 server.stop();
                 eventService.stop();
+                jedisPool.close();
                 log.info("Server is stopped.");
             }
         });
