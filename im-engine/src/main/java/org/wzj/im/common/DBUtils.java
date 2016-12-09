@@ -10,6 +10,7 @@ import org.wzj.im.core.HistoryMessageQuery;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -17,6 +18,8 @@ import java.util.List;
  * Created by wens on 16-9-14.
  */
 public class DBUtils {
+
+    public final static String DEFAULT_APP_ID  = "0001" ;
 
     private static DruidDataSource dataSource;
 
@@ -28,11 +31,9 @@ public class DBUtils {
         dataSource.setUrl(config.getDbUrl());
         dataSource.setUsername(config.getDbUser());
         dataSource.setPassword(config.getDbPassword());
+        dataSource.setConnectionInitSqls(Arrays.asList("set names utf8mb4"));
         dataSource.setInitialSize(20);
     }
-
-
-
 
 
 
@@ -105,9 +106,12 @@ public class DBUtils {
     }
 
 
-    public static User queryUserByUsername(String username) throws SQLException {
+    public static User queryUserByUsername(String appId , String username) throws SQLException {
+        if(appId == null ){
+            appId = DEFAULT_APP_ID ;
+        }
         QueryRunner runner = new QueryRunner(dataSource);
-        return runner.query("select u.user_id as userId , u.username as username , u.nickname as nickname, u.status as `status` , u.password as password , u.create_time as createTime , u.heart_time as heartTime from im_user u where u.username = ? ", new BeanHandler<User>(User.class), username);
+        return runner.query("select u.user_id as userId , u.username as username , u.nickname as nickname, u.status as `status` , u.password as password , u.create_time as createTime , u.heart_time as heartTime from im_user u where u.app_id = ? and  u.username = ? ", new BeanHandler<User>(User.class), appId , username);
     }
 
     public static List<Group> queryJoinGroupBy(String userId) throws SQLException {
@@ -148,10 +152,13 @@ public class DBUtils {
         return false;
     }
 
-    public static List<User> queryUserByKeywork(String keyword) throws SQLException {
+    public static List<User> queryUserByKeywork(String appId , String keyword) throws SQLException {
+        if(appId == null ){
+            appId = DEFAULT_APP_ID ;
+        }
         QueryRunner runner = new QueryRunner(dataSource);
         BeanListHandler<User> resultHandler = new BeanListHandler<>(User.class);
-        return runner.query("select u.user_id as userId , u.username as username , u.nickname as nickname, u.status as `status`  from  im_user u  where u.username like ? or  u.nickname like ? ", resultHandler, "%" + keyword + "%", "%" + keyword + "%");
+        return runner.query("select u.user_id as userId , u.username as username , u.nickname as nickname, u.status as `status`  from  im_user u  where u.app_id = ? and  u.username like ? or  u.nickname like ? ", resultHandler, appId, "%" + keyword + "%", "%" + keyword + "%");
 
     }
 
@@ -161,9 +168,12 @@ public class DBUtils {
         return runner.query("select g.group_id as groupId , g.group_name as groupName  from im_group g where g.group_name like ? ", resultHandler, "%" + keyword + "%");
     }
 
-    public static User saveUser(String userId , String username, String nickname, String password) throws SQLException {
+    public static User saveUser(String userId , String appId , String username, String nickname, String password) throws SQLException {
+        if(appId == null ){
+            appId = DEFAULT_APP_ID  ;
+        }
         QueryRunner runner = new QueryRunner(dataSource);
-        int u = runner.update("insert into im_user (user_id , username,nickname ,password ,status ,create_time ) values (?,?,?,?,?,?)", userId, username, nickname, password,0, new Date());
+        int u = runner.update("insert into im_user (user_id ,app_id , username,nickname ,password ,status ,create_time ) values (?,?,?,?,?,?,?)", userId, appId, username, nickname, password,0, new Date());
         return u > 0 ?  getUser(userId) :  null ;
     }
 
@@ -211,5 +221,10 @@ public class DBUtils {
         }, groupId);
         return nu ;
 
+    }
+
+    public static void updateUser(String userId, String username, String nickname) throws SQLException {
+        QueryRunner runner = new QueryRunner(dataSource);
+        runner.update("update im_user set username = ? , nickname = ?  where user_id = ? ",  username, nickname ,userId  );
     }
 }

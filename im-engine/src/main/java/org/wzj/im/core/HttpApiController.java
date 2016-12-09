@@ -63,12 +63,28 @@ public class HttpApiController  extends SpringBootServletInitializer implements 
 
     @RequestMapping("/api/user/enroll")
     @ResponseBody
-    public ReturnResult userEnroll( @RequestParam("username")String username,@RequestParam("nickname")String nickname ,@RequestParam("password")String password) {
+    public ReturnResult userEnroll( @RequestParam(value = "appId" , required = false ,defaultValue = DBUtils.DEFAULT_APP_ID )String appId , @RequestParam("username")String username,@RequestParam("nickname")String nickname ,@RequestParam("password")String password) {
         try {
-            User user  = DBUtils.saveUser(String.valueOf(IdWorker.getId()),username,nickname,password);
+            User user ;
+            try{
+                user = DBUtils.saveUser(String.valueOf(IdWorker.getId()) , appId ,username,nickname,password);
+            }catch (SQLException e){
+                user = DBUtils.queryUserByUsername(appId,username );
+            }
             return ReturnResult.success(user);
         } catch (SQLException e) {
             return ReturnResult.fail("Enroll fail") ;
+        }
+    }
+
+    @RequestMapping("/api/user/update")
+    @ResponseBody
+    public ReturnResult userUpdate( @RequestParam("userId")String userId , @RequestParam("username")String username,@RequestParam("nickname")String nickname) {
+        try {
+            DBUtils.updateUser(userId , username , nickname );
+            return ReturnResult.success("OK");
+        } catch (SQLException e) {
+            return ReturnResult.fail("Update fail") ;
         }
     }
 
@@ -85,6 +101,6 @@ public class HttpApiController  extends SpringBootServletInitializer implements 
 
     @Override
     public void customize(ConfigurableEmbeddedServletContainer configurableEmbeddedServletContainer) {
-        configurableEmbeddedServletContainer.setPort(9696);
+        configurableEmbeddedServletContainer.setPort(9797);
     }
 }

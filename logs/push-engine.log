@@ -1,0 +1,7 @@
+2016-12-09 09:54:09.962 [Thread-1] INFO  org.wzj.im.core.ImEngineBootstrap - Server is stopping ......
+2016-12-09 09:54:09.963 [Thread-3] INFO  o.s.b.c.e.AnnotationConfigEmbeddedWebApplicationContext - Closing org.springframework.boot.context.embedded.AnnotationConfigEmbeddedWebApplicationContext@347318cf: startup date [Thu Dec 08 18:03:13 CST 2016]; root of context hierarchy
+2016-12-09 09:54:09.990 [Thread-3] INFO  o.s.jmx.export.annotation.AnnotationMBeanExporter - Unregistering JMX-exposed beans on shutdown
+2016-12-09 09:54:12.230 [nioEventLoopGroup-3-2] WARN  org.wzj.im.core.OnlineUserManager - Can not find client for the group : 500961919587319808
+2016-12-09 09:54:12.231 [nioEventLoopGroup-3-2] WARN  org.wzj.im.core.OnlineUserManager - Can not find client for the group : 500961905507041280
+2016-12-09 09:54:14.410 [Thread-1] INFO  com.corundumstudio.socketio.SocketIOServer - SocketIO server stopped
+2016-12-09 09:54:14.419 [Thread-1] INFO  org.wzj.im.core.ImEngineBootstrap - Server is stopped.

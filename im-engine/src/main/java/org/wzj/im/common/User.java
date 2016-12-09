@@ -8,6 +8,7 @@ import java.util.Date;
 public class User {
 
     private String userId;
+    private String appId;
     private String username;
     private String nickname;
     private String password;
@@ -69,5 +70,13 @@ public class User {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getAppId() {
+        return appId;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
     }
 }

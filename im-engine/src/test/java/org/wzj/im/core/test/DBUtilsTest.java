@@ -26,16 +26,16 @@ public class DBUtilsTest {
 
     @Test
     public void test_saveUser() throws SQLException {
-        User user = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , RandomStringUtils.randomAlphabetic(10), RandomStringUtils.randomAlphabetic(3), "123456");
+        User user = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , null, RandomStringUtils.randomAlphabetic(10), RandomStringUtils.randomAlphabetic(3), "123456");
         Assert.assertNotNull(user );
     }
 
     @Test
     public void test_queryUserByUsername() throws SQLException {
         String username = RandomStringUtils.randomAlphabetic(10);
-        User user   = DBUtils.saveUser( String.valueOf(IdWorker.getId()),  username , RandomStringUtils.randomAlphabetic(3), "123456");
+        User user   = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , null ,  username , RandomStringUtils.randomAlphabetic(3), "123456");
         Assert.assertNotNull(user);
-        User user2 = DBUtils.queryUserByUsername(username);
+        User user2 = DBUtils.queryUserByUsername(null , username);
         Assert.assertNotNull(user2);
     }
 
@@ -45,8 +45,8 @@ public class DBUtilsTest {
         String username2 = RandomStringUtils.randomAlphabetic(10);
         String nickname1 = RandomStringUtils.randomAlphabetic(3);
         String nickname2 = RandomStringUtils.randomAlphabetic(3);
-        User user1 = DBUtils.saveUser(  String.valueOf(IdWorker.getId()), username1 ,nickname1 , "123456");
-        User user2 = DBUtils.saveUser(  String.valueOf(IdWorker.getId()) , username2 ,nickname2 , "123456");
+        User user1 = DBUtils.saveUser(  String.valueOf(IdWorker.getId()) , null , username1 ,nickname1 , "123456");
+        User user2 = DBUtils.saveUser(  String.valueOf(IdWorker.getId()) ,null , username2 ,nickname2 , "123456");
 
         boolean b = DBUtils.saveFriend(user1.getUserId(), user2.getUserId());
 
@@ -62,9 +62,9 @@ public class DBUtilsTest {
     public void test_queryUserByKeywork() throws SQLException {
         String username = RandomStringUtils.randomAlphabetic(10);
         String nickname = RandomStringUtils.randomAlphabetic(3);
-        User user  = DBUtils.saveUser( String.valueOf(IdWorker.getId()) ,  username ,nickname , "123456");
+        User user  = DBUtils.saveUser( String.valueOf(IdWorker.getId()) ,null ,  username ,nickname , "123456");
         Assert.assertNotNull(user );
-        List<User> users = DBUtils.queryUserByKeywork(nickname);
+        List<User> users = DBUtils.queryUserByKeywork(null , nickname);
         Assert.assertTrue(users.size() > 0 );
     }
 
@@ -86,7 +86,7 @@ public class DBUtilsTest {
     @Test
     public void test_saveGroupUser_queryJoinGroupBy() throws SQLException {
         String username = RandomStringUtils.randomAlphabetic(10);
-        User user  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,  username , RandomStringUtils.randomAlphabetic(3), "123456");
+        User user  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,null ,   username , RandomStringUtils.randomAlphabetic(3), "123456");
 
         String token = RandomStringUtils.randomAlphabetic(10);
         String groupName = RandomStringUtils.randomAlphabetic(10);
@@ -109,8 +109,8 @@ public class DBUtilsTest {
         String username2 = RandomStringUtils.randomAlphabetic(10);
         String nickname1 = RandomStringUtils.randomAlphabetic(3);
         String nickname2 = RandomStringUtils.randomAlphabetic(3);
-        User user1  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,  username1 ,nickname1 , "123456");
-        User user2 = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , username2 ,nickname2 , "123456");
+        User user1  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,null ,  username1 ,nickname1 , "123456");
+        User user2 = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , null , username2 ,nickname2 , "123456");
         ImMessage imMessage = new ImMessage();
         imMessage.setContent("hi");
         imMessage.setCreateTime(new Date());
@@ -133,8 +133,8 @@ public class DBUtilsTest {
         String username2 = RandomStringUtils.randomAlphabetic(10);
         String nickname1 = RandomStringUtils.randomAlphabetic(3);
         String nickname2 = RandomStringUtils.randomAlphabetic(3);
-        User user1  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) ,  username1 ,nickname1 , "123456");
-        User user2 = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , username2 ,nickname2 , "123456");
+        User user1  = DBUtils.saveUser(String.valueOf(IdWorker.getId()) , null ,  username1 ,nickname1 , "123456");
+        User user2 = DBUtils.saveUser( String.valueOf(IdWorker.getId()) , null , username2 ,nickname2 , "123456");
 
 
         String token = RandomStringUtils.randomAlphabetic(10);

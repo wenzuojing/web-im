@@ -5,6 +5,7 @@ package org.wzj.im.core;
  */
 public class Login {
 
+    private String appId ;
     private String username;
     private String password;
     private String token;
@@ -31,5 +32,13 @@ public class Login {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getAppId() {
+        return appId;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
     }
 }

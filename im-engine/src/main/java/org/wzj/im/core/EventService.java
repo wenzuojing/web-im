@@ -42,7 +42,7 @@ public class EventService {
 
     public void onLogin(SocketIOClient client, Login login, AckRequest ackRequest) {
         try {
-            User user = DBUtils.queryUserByUsername(login.getUsername());
+            User user = DBUtils.queryUserByUsername(login.getAppId() , login.getUsername());
 
             if (user == null || !user.getPassword().equals(login.getPassword())) {
                 log.warn("This connection is not auth , force disconnect : username = {} , sessionId={},remoteAddress = {} ", login.getUsername(), client.getSessionId(), client.getRemoteAddress());
@@ -161,8 +161,10 @@ public class EventService {
 
     public void onFindUser(SocketIOClient client, String keyword, AckRequest ackRequest) {
         try {
-            List<User> users = DBUtils.queryUserByKeywork(keyword);
+
             OnlineUserManager.Bind bind  = client.get(Constant.BIND_KEY) ;
+            User currentUser = DBUtils.getUser(bind.userId);
+            List<User> users = DBUtils.queryUserByKeywork(currentUser.getAppId(), keyword);
             if (users == null) {
                 users = Collections.EMPTY_LIST;
             }else if(bind != null ){
@@ -229,7 +231,7 @@ public class EventService {
     public void onEnroll(SocketIOClient client, Enroll enroll, AckRequest ackRequest) {
 
         try {
-            User user  = DBUtils.saveUser(String.valueOf( IdWorker.getId()), enroll.getUsername(), enroll.getNickname(), enroll.getPassword() ) ;
+            User user  = DBUtils.saveUser(String.valueOf( IdWorker.getId()), null ,enroll.getUsername(), enroll.getNickname(), enroll.getPassword() ) ;
             if ( user != null ) {
                 ackRequest.sendAckData("ok" , user );
             } else {
