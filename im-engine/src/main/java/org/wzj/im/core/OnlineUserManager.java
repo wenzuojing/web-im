@@ -10,27 +10,122 @@ import org.wzj.im.common.*;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by wens on 15-11-9.
  */
-public class OnlineUserManager {
+public class OnlineUserManager implements Runnable {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+
+    private DelayQueue<UserOffline> userOfflineDelayQueue = new DelayQueue<UserOffline>() ;
 
 
     public static class Bind {
         String userId;
         Set<String> groups;
-
         public Bind(String userId, Set<String> groups) {
             this.userId = userId;
             this.groups = groups;
         }
     }
 
+    public static class UserOffline implements Delayed{
+
+        String userId ;
+        long offlineTime ;
+
+        public UserOffline(String userId, long offlineTime) {
+            this.userId = userId;
+            this.offlineTime = offlineTime;
+        }
+
+        @Override
+        public long getDelay(TimeUnit unit) {
+            return offlineTime - System.currentTimeMillis() ;
+        }
+
+        @Override
+        public int compareTo(Delayed o) {
+            UserOffline uo = (UserOffline) o ;
+            return (int)( offlineTime - uo.offlineTime) ;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            UserOffline that = (UserOffline) o;
+
+            return userId != null ? userId.equals(that.userId) : that.userId == null;
+
+        }
+
+        @Override
+        public int hashCode() {
+            return userId != null ? userId.hashCode() : 0;
+        }
+    }
+
+    @Override
+    public void run() {
+
+
+        while (true){
+
+            try {
+                UserOffline userOffline = userOfflineDelayQueue.take();
+                Collection<SocketIOClient> socketIOClients = userId2Clients.get(userOffline.userId);
+                if (socketIOClients == null || socketIOClients.size() == 0) {
+
+                    try {
+                        DBUtils.changeUserStatus(userOffline.userId, 0);
+                    } catch (SQLException e) {
+                        throw new PushException(e);
+                    }
+                    List<User> friends = null;
+                    try {
+                        friends = DBUtils.queryFriend(userOffline.userId);
+                    } catch (SQLException e) {
+                        throw new PushException(e) ;
+                    }
+                    List<String> friendIds  =  new ArrayList<>(friends.size());
+                    for(User u : friends){
+                        friendIds.add(u.getUserId());
+                    }
+                    messageExchange.pushOnlineOfflineEvent(userOffline.userId ,friendIds ,false );
+                    try {
+                        List<Group> groups = DBUtils.queryJoinGroupBy(userOffline.userId);
+                        Set<String> groupIds = new HashSet<>();
+                        if (groups != null) {
+                            for (Group g : groups) {
+                                groupIds.add(g.getGroupId());
+                            }
+                        }
+                        messageExchange.pushGroupMemberOnlineOfflineEvent(groupIds.toArray(new String[groupIds.size()]),false);
+                    } catch (SQLException e) {
+                        log.error("pushGroupMemberOnlineOfflineEvent fail" , e );
+                    }
+
+                }
+            } catch (Exception e) {
+                log.error("Handle user offline fail" ,e);
+            }
+
+        }
+
+    }
+
+    public OnlineUserManager(){
+        new Thread(this,"offline-thread").start();
+    }
 
     private final Multimap<String, SocketIOClient> userId2Clients = HashMultimap.create();
     private final Multimap<String, SocketIOClient> group2Clients = HashMultimap.create();
@@ -125,25 +220,11 @@ public class OnlineUserManager {
                 group2Clients.remove(g, client);
             }
 
+
+
             Collection<SocketIOClient> socketIOClients = userId2Clients.get(bind.userId);
             if (socketIOClients == null || socketIOClients.size() == 0) {
-                try {
-                    DBUtils.changeUserStatus(bind.userId, 0);
-                } catch (SQLException e) {
-                    throw new PushException(e);
-                }
-                List<User> friends = null;
-                try {
-                    friends = DBUtils.queryFriend(bind.userId);
-                } catch (SQLException e) {
-                    throw new PushException(e) ;
-                }
-                List<String> friendIds  =  new ArrayList<>(friends.size());
-                for(User u : friends){
-                    friendIds.add(u.getUserId());
-                }
-                messageExchange.pushOnlineOfflineEvent(bind.userId ,friendIds ,false );
-                messageExchange.pushGroupMemberOnlineOfflineEvent(bind.groups.toArray(new String[bind.groups.size()]),false );
+                userOfflineDelayQueue.put(new UserOffline(bind.userId , System.currentTimeMillis() + ( 30 * 1000 )  ));
             }
 
         } finally {
@@ -306,6 +387,7 @@ public class OnlineUserManager {
             log.info("Push onlineEvent or offlineEvent for the  group : {}  ", groupId );
         }
     }
+
 
 
 }
